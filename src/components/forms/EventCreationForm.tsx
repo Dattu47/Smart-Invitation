@@ -53,6 +53,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
   const [website, setWebsite] = useState(initialData?.website || "");
   const [dressCode, setDressCode] = useState(initialData?.dressCode || "");
   const [parkingInfo, setParkingInfo] = useState(initialData?.parkingInfo || "");
+  const [coverImage, setCoverImage] = useState(initialData?.coverImage || "");
 
   // UI accordion status states
   const [openSection, setOpenSection] = useState<string | null>("location");
@@ -100,6 +101,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         parkingInfo: parkingInfo || undefined,
         website: website || undefined,
         email: email || undefined,
+        coverImage: coverImage || undefined,
       };
 
       // Strip out undefined values to save compression space
@@ -243,6 +245,21 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
                   rows={3}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors resize-none"
                 />
+              </div>
+
+              {/* Photo URL */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Photo URL</label>
+                <input
+                  type="url"
+                  placeholder="Paste a link to an image (e.g., from Imgur, Google Drive)"
+                  value={coverImage}
+                  onChange={(e) => setCoverImage(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors"
+                />
+                <p className="text-[10px] text-gray-500 mt-1.5 ml-1 leading-snug">
+                  To keep your QR code free and scannable, we use image links instead of direct uploads. Paste any public image link here.
+                </p>
               </div>
             </motion.div>
           )}

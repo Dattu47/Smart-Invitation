@@ -13,7 +13,8 @@ import {
   Car, 
   FileText,
   User,
-  Heart
+  Heart,
+  Camera
 } from "lucide-react";
 import { EventData } from "@/types";
 import { THEME_STYLES_MAP, InvitationTheme } from "@/config/themes";
@@ -29,7 +30,7 @@ interface InvitationClientViewProps {
 // Automatically detect best theme based on keywords in the event title
 function detectTheme(eventName?: string, themeQuery?: string | null): InvitationTheme {
   if (themeQuery === "party" || themeQuery === "corporate" || themeQuery === "wedding") {
-    return themeQuery;
+    return themeQuery as InvitationTheme;
   }
   
   const name = (eventName || "").toLowerCase();
@@ -75,7 +76,6 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
   // Helper date conversions for calendar utilities
   const hasSchedule = !!(event.date && event.startTime);
   
-  // Calculate start/end ISO times for calendar exports if scheduling is provided
   let startISO = "";
   let endISO = "";
   if (hasSchedule && event.date && event.startTime) {
@@ -120,14 +120,14 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
   ];
 
   return (
-    <div className={`relative min-h-screen w-full flex flex-col items-center justify-start text-white overflow-hidden py-10 px-4 md:py-16 transition-colors duration-700 ${styles.bodyBgClass} ${styles.fontClass}`}>
+    <div className={`relative min-h-screen w-full flex flex-col items-center justify-start text-white overflow-x-hidden py-10 px-4 md:py-16 transition-colors duration-700 ${styles.bodyBgClass} ${styles.fontClass}`}>
       
       {/* Background Ambient Glows */}
-      <div className={`absolute top-[-10%] left-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br opacity-30 blur-[120px] pointer-events-none ${styles.glow1Class}`} />
-      <div className={`absolute bottom-[-10%] right-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br opacity-20 blur-[120px] pointer-events-none ${styles.glow2Class}`} />
+      <div className={`fixed top-[-10%] left-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br opacity-40 blur-[140px] pointer-events-none ${styles.glow1Class}`} />
+      <div className={`fixed bottom-[-10%] right-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br opacity-30 blur-[140px] pointer-events-none ${styles.glow2Class}`} />
 
       {/* Floating Sparkle Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         {backgroundElements.map((el, i) => (
           <div
             key={i}
@@ -144,141 +144,162 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
       </div>
 
       {/* Content wrapper */}
-      <main className="w-full max-w-md flex flex-col gap-6 relative z-10">
+      <main className="w-full max-w-md flex flex-col gap-6 relative z-10 mt-4">
         
-
-
-        {/* Hero title info */}
-        {event.eventName && (
-          <motion.header
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center select-none"
-          >
-            <h1 className={`text-4xl font-bold tracking-wide leading-tight filter drop-shadow-md ${styles.titleGradientClass}`}>
-              {event.eventName}
-            </h1>
-            {event.hostName && (
-              <p className={`text-xs uppercase tracking-widest font-semibold mt-2 ${styles.subtitleColorClass} flex items-center justify-center gap-1.5`}>
-                <User className="w-3.5 h-3.5" />
-                <span>Hosted by {event.hostName}</span>
-              </p>
-            )}
-          </motion.header>
-        )}
-
-        {/* Main invitation info card */}
+        {/* Main invitation info card with Glassmorphism */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, type: "spring", stiffness: 60 }}
-          className={`w-full p-6 rounded-3xl border space-y-6 ${styles.cardBgClass}`}
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+          className="w-full rounded-[2rem] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-2xl bg-white/[0.04] overflow-hidden relative"
         >
-          {/* Card title if hero header was missing */}
-          {!event.eventName && (
-            <div className="text-center pb-2 select-none">
-              <h2 className={`text-2xl font-bold tracking-wide ${styles.titleGradientClass}`}>
-                You're Invited!
-              </h2>
-              <p className={`text-[10px] uppercase tracking-widest mt-1 ${styles.labelColorClass}`}>
-                Event Invitation Details
-              </p>
-            </div>
-          )}
+          {/* Subtle noise texture overlay for premium feel */}
+          <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
 
-          {/* Date & Time (Conditional) */}
-          {hasSchedule && (
-            <div className="flex items-start gap-4">
-              <div className={`p-3 rounded-2xl border shrink-0 ${styles.iconContainerBgClass}`}>
-                <Calendar className={`w-5 h-5 ${styles.iconColorClass}`} />
-              </div>
-              <div>
-                <p className={`text-xs uppercase tracking-wider font-semibold ${styles.labelColorClass}`}>Schedule</p>
-                <p className={`text-base font-semibold mt-0.5 ${styles.valueColorClass}`}>
-                  {eventDetails.date}
-                </p>
-                <p className="text-sm text-gray-300 flex items-center gap-1.5 mt-0.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{eventDetails.time}</span>
-                </p>
+          {/* Photo URL Integration */}
+          {event.coverImage ? (
+            <div className="w-full h-56 relative overflow-hidden group">
+              <img 
+                src={event.coverImage} 
+                alt="Event Cover" 
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+              
+              {/* Event Name overlaid on image */}
+              <div className="absolute bottom-6 left-6 right-6 text-left drop-shadow-lg">
+                <h1 className={`text-3xl font-bold tracking-wide leading-tight text-white`}>
+                  {event.eventName || "You're Invited!"}
+                </h1>
+                {event.hostName && (
+                  <p className="text-xs uppercase tracking-widest font-semibold mt-1.5 text-white/90 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Hosted by {event.hostName}</span>
+                  </p>
+                )}
               </div>
             </div>
-          )}
-
-          {/* Location details */}
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-2xl border shrink-0 ${styles.iconContainerBgClass}`}>
-              <MapPin className={`w-5 h-5 ${styles.iconColorClass}`} />
-            </div>
-            <div>
-              <p className={`text-xs uppercase tracking-wider font-semibold ${styles.labelColorClass}`}>Destination Location</p>
-              {event.venueName && (
-                <p className={`text-base font-semibold mt-0.5 ${styles.valueColorClass}`}>
-                  {event.venueName}
+          ) : (
+            /* Header without image */
+            <div className={`w-full p-8 text-center bg-gradient-to-br ${styles.titleGradientClass.includes('gold') ? 'from-white/5 to-white/0' : 'from-white/10 to-white/0'} border-b border-white/10`}>
+              <h1 className={`text-3xl md:text-4xl font-bold tracking-wide leading-tight filter drop-shadow-md ${styles.titleGradientClass}`}>
+                {event.eventName || "You're Invited!"}
+              </h1>
+              {event.hostName && (
+                <p className={`text-[10px] uppercase tracking-widest font-bold mt-3 ${styles.subtitleColorClass} flex items-center justify-center gap-1.5`}>
+                  <User className="w-3.5 h-3.5" />
+                  <span>Hosted by {event.hostName}</span>
                 </p>
               )}
-              <p className="text-sm text-gray-300 leading-relaxed mt-1">
-                {event.address}
-              </p>
             </div>
-          </div>
+          )}
 
-          {/* Description details (Conditional) */}
-          {event.description && (
-            <div className="flex items-start gap-4 pt-2 border-t border-white/[0.05]">
-              <div className={`p-3 rounded-2xl border shrink-0 ${styles.iconContainerBgClass}`}>
-                <FileText className={`w-5 h-5 ${styles.iconColorClass}`} />
+          {/* Details Section */}
+          <div className="p-6 md:p-8 space-y-7 relative z-10">
+            {/* Date & Time */}
+            {hasSchedule && (
+              <div className="flex items-start gap-4 group">
+                <div className={`p-3.5 rounded-2xl bg-white/5 border border-white/10 shadow-inner group-hover:bg-white/10 transition-colors duration-300 shrink-0`}>
+                  <Calendar className={`w-5 h-5 ${styles.iconColorClass}`} />
+                </div>
+                <div>
+                  <p className={`text-[10px] uppercase tracking-widest font-bold ${styles.labelColorClass}`}>Schedule</p>
+                  <p className={`text-base font-medium mt-1 text-white tracking-wide`}>
+                    {eventDetails.date}
+                  </p>
+                  <p className="text-sm text-gray-400 flex items-center gap-1.5 mt-1 font-medium">
+                    <Clock className="w-3.5 h-3.5 text-gray-500" />
+                    <span>{eventDetails.time}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Location details */}
+            <div className="flex items-start gap-4 group">
+              <div className={`p-3.5 rounded-2xl bg-white/5 border border-white/10 shadow-inner group-hover:bg-white/10 transition-colors duration-300 shrink-0`}>
+                <MapPin className={`w-5 h-5 ${styles.iconColorClass}`} />
               </div>
               <div className="flex-1">
-                <p className={`text-xs uppercase tracking-wider font-semibold ${styles.labelColorClass}`}>About Event</p>
-                <p className="text-sm text-gray-200 mt-1 leading-relaxed whitespace-pre-line">
-                  {event.description}
+                <p className={`text-[10px] uppercase tracking-widest font-bold ${styles.labelColorClass}`}>Destination Location</p>
+                {event.venueName && (
+                  <p className={`text-base font-medium mt-1 text-white tracking-wide`}>
+                    {event.venueName}
+                  </p>
+                )}
+                <p className="text-sm text-gray-400 leading-relaxed mt-1 font-medium">
+                  {event.address}
                 </p>
               </div>
             </div>
-          )}
 
-          {/* Dress & Parking details (Conditional) */}
-          {(event.dressCode || event.parkingInfo) && (
-            <div className="pt-4 border-t border-white/[0.05] grid grid-cols-2 gap-4">
-              {event.dressCode && (
-                <div className="flex gap-2">
-                  <Shirt className={`w-4 h-4 shrink-0 mt-0.5 ${styles.iconColorClass}`} />
-                  <div>
-                    <p className={`text-[10px] uppercase font-bold tracking-wide ${styles.labelColorClass}`}>Dress Code</p>
-                    <p className="text-xs text-gray-200 font-semibold mt-0.5">{event.dressCode}</p>
-                  </div>
+            {/* Description details */}
+            {event.description && (
+              <div className="flex items-start gap-4 pt-5 border-t border-white/10 group">
+                <div className={`p-3.5 rounded-2xl bg-white/5 border border-white/10 shadow-inner group-hover:bg-white/10 transition-colors duration-300 shrink-0`}>
+                  <FileText className={`w-5 h-5 ${styles.iconColorClass}`} />
                 </div>
-              )}
-              {event.parkingInfo && (
-                <div className="flex gap-2">
-                  <Car className={`w-4 h-4 shrink-0 mt-0.5 ${styles.iconColorClass}`} />
-                  <div>
-                    <p className={`text-[10px] uppercase font-bold tracking-wide ${styles.labelColorClass}`}>Parking</p>
-                    <p className="text-xs text-gray-200 font-semibold mt-0.5">{event.parkingInfo}</p>
-                  </div>
+                <div className="flex-1">
+                  <p className={`text-[10px] uppercase tracking-widest font-bold ${styles.labelColorClass}`}>About Event</p>
+                  <p className="text-sm text-gray-300 mt-1.5 leading-relaxed whitespace-pre-line font-medium">
+                    {event.description}
+                  </p>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+
+            {/* Dress & Parking details */}
+            {(event.dressCode || event.parkingInfo) && (
+              <div className="pt-5 border-t border-white/10 grid grid-cols-2 gap-6">
+                {event.dressCode && (
+                  <div className="flex gap-3 items-start group">
+                    <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors duration-300">
+                      <Shirt className={`w-4 h-4 ${styles.iconColorClass}`} />
+                    </div>
+                    <div>
+                      <p className={`text-[9px] uppercase font-bold tracking-widest ${styles.labelColorClass}`}>Dress Code</p>
+                      <p className="text-xs text-white font-medium mt-1">{event.dressCode}</p>
+                    </div>
+                  </div>
+                )}
+                {event.parkingInfo && (
+                  <div className="flex gap-3 items-start group">
+                    <div className="p-2 rounded-xl bg-white/5 border border-white/10 group-hover:bg-white/10 transition-colors duration-300">
+                      <Car className={`w-4 h-4 ${styles.iconColorClass}`} />
+                    </div>
+                    <div>
+                      <p className={`text-[9px] uppercase font-bold tracking-widest ${styles.labelColorClass}`}>Parking</p>
+                      <p className="text-xs text-white font-medium mt-1">{event.parkingInfo}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {/* Dynamic call to actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="flex flex-col gap-3.5 w-full px-1"
+          transition={{ delay: 0.6, duration: 0.5 }}
+          className="flex flex-col gap-4 w-full px-1"
         >
-          {/* 📍 Get Directions (Always required) */}
-          <DirectionsButton
-            latitude={event.latitude}
-            longitude={event.longitude}
-            styles={styles}
-            onNotify={showToast}
-          />
+          {/* 📍 Get Directions */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-[1.2rem] opacity-30 group-hover:opacity-60 blur transition duration-500" />
+            <DirectionsButton
+              latitude={event.latitude}
+              longitude={event.longitude}
+              styles={styles}
+              onNotify={showToast}
+            />
+          </div>
 
-          {/* Add to Calendar (Conditional) */}
+          {/* Add to Calendar */}
           {hasSchedule && (
             <CalendarButton
               eventDetails={eventDetails}
@@ -287,50 +308,50 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
             />
           )}
 
-          {/* Organizer Call Dials (Conditional) */}
+          {/* Organizer Call Dial */}
           {event.phone && (
             <a
               href={`tel:${event.phone}`}
-              className="w-full flex items-center justify-center gap-3 px-8 py-4.5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-white/20 text-gray-200 hover:text-white text-base font-bold tracking-wide shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all duration-300 select-none"
+              className="w-full flex items-center justify-center gap-3 px-8 py-5 rounded-[1.1rem] bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] text-white text-base font-bold tracking-wide shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 select-none backdrop-blur-md"
             >
-              <Phone className="w-5 h-5 text-green-400 fill-current" />
+              <Phone className="w-5 h-5 text-green-400" />
               <span>Call Organizer</span>
             </a>
           )}
         </motion.div>
 
-        {/* Contact links card (Optional) */}
+        {/* Contact links card */}
         {(event.email || event.website) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className={`w-full p-4 rounded-2xl border flex flex-col gap-3 text-xs bg-white/[0.01] border-white/[0.05] ${styles.fontClass}`}
+            transition={{ delay: 0.8 }}
+            className={`w-full px-1 flex justify-center gap-4 text-xs ${styles.fontClass}`}
           >
             {event.email && (
-              <a href={`mailto:${event.email}`} className="flex items-center gap-2.5 text-gray-300 hover:text-white transition-colors">
-                <Mail className={`w-4 h-4 ${styles.iconColorClass}`} />
+              <a href={`mailto:${event.email}`} className="flex items-center gap-2 py-2 px-4 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md">
+                <Mail className={`w-3.5 h-3.5 ${styles.iconColorClass}`} />
                 <span>{event.email}</span>
               </a>
             )}
             {event.website && (
-              <a href={event.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-gray-300 hover:text-white transition-colors truncate">
-                <Globe className={`w-4 h-4 ${styles.iconColorClass}`} />
-                <span>{event.website}</span>
+              <a href={event.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 py-2 px-4 rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all backdrop-blur-md">
+                <Globe className={`w-3.5 h-3.5 ${styles.iconColorClass}`} />
+                <span>Website</span>
               </a>
             )}
           </motion.div>
         )}
 
         {/* Branding Footer */}
-        <footer className="w-full text-center py-6 select-none">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className={`h-[1px] w-10 ${styles.dividerBgClass}`} />
+        <footer className="w-full text-center py-6 mt-4 select-none opacity-60 hover:opacity-100 transition-opacity">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <div className={`h-[1px] w-12 bg-gradient-to-r from-transparent to-white/30`} />
             <Heart className={`w-3.5 h-3.5 animate-pulse ${styles.footerHeartColorClass}`} />
-            <div className={`h-[1px] w-10 ${styles.dividerBgClass}`} />
+            <div className={`h-[1px] w-12 bg-gradient-to-l from-transparent to-white/30`} />
           </div>
-          <p className="text-[10px] text-gray-500 tracking-wider">
-            Smart Digital Invitation QR Platform
+          <p className="text-[10px] text-gray-400 font-medium tracking-widest uppercase">
+            Smart Invitation
           </p>
         </footer>
       </main>
