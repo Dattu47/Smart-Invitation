@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { GoogleMap, useLoadScript, MarkerF, Autocomplete } from "@react-google-maps/api";
+import { useEffect, useRef, useState } from "react";
+import L from "leaflet";
 import { Search, MapPin, Loader2 } from "lucide-react";
-
-const libraries: ("places")[] = ["places"];
+import "leaflet/dist/leaflet.css";
 
 interface MapComponentProps {
   onLocationSelect: (lat: number, lng: number, address: string) => void;
@@ -13,156 +12,172 @@ interface MapComponentProps {
   initialAddress?: string;
 }
 
-const mapContainerStyle = {
-  width: "100%",
-  height: "250px",
-};
+// Leaflet default icon configuration to resolve Next.js path resolution problems
+const markerIcon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
 
 export default function MapComponent({
   onLocationSelect,
-  initialLat = 17.385044, 
+  initialLat = 17.385044, // Default to Hyderabad Charminar area
   initialLng = 78.486671,
   initialAddress = "",
 }: MapComponentProps) {
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string,
-    libraries,
-  });
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMap = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
-  const [center, setCenter] = useState({ lat: initialLat, lng: initialLng });
-  const [markerPos, setMarkerPos] = useState({ lat: initialLat, lng: initialLng });
-  const [currentAddress, setCurrentAddress] = useState(initialAddress);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+  const [currentAddress, setCurrentAddress] = useState(initialAddress);
 
-  // Sync with initial props
+  // Initialize Map
   useEffect(() => {
-    if (initialLat && initialLng) {
-      setCenter({ lat: initialLat, lng: initialLng });
-      setMarkerPos({ lat: initialLat, lng: initialLng });
-    }
-    if (initialAddress) {
-      setCurrentAddress(initialAddress);
+    if (!mapRef.current || leafletMap.current) return;
+
+    // Initialize Leaflet Map instance
+    leafletMap.current = L.map(mapRef.current).setView([initialLat, initialLng], 13);
+
+    // Load OpenStreetMap Tiles
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(leafletMap.current);
+
+    // Create and add initial marker
+    markerRef.current = L.marker([initialLat, initialLng], {
+      icon: markerIcon,
+      draggable: true,
+    }).addTo(leafletMap.current);
+
+    // Reverse geocode on marker drag end
+    markerRef.current.on("dragend", async () => {
+      if (!markerRef.current) return;
+      const pos = markerRef.current.getLatLng();
+      await reverseGeocode(pos.lat, pos.lng);
+    });
+
+    // Handle map clicks to relocate pin
+    leafletMap.current.on("click", async (e) => {
+      if (!markerRef.current) return;
+      const { lat, lng } = e.latlng;
+      markerRef.current.setLatLng([lat, lng]);
+      await reverseGeocode(lat, lng);
+    });
+
+    return () => {
+      if (leafletMap.current) {
+        leafletMap.current.remove();
+        leafletMap.current = null;
+      }
+    };
+  }, []);
+
+  // Update map view if initial position updates (e.g., when editing existing event)
+  useEffect(() => {
+    if (leafletMap.current && markerRef.current && initialLat && initialLng) {
+      const latLng = L.latLng(initialLat, initialLng);
+      markerRef.current.setLatLng(latLng);
+      leafletMap.current.setView(latLng, 14);
+      if (initialAddress) {
+        setCurrentAddress(initialAddress);
+      }
     }
   }, [initialLat, initialLng, initialAddress]);
 
+  // Reverse Geocoding (Coordinates -> Address string) via OpenStreetMap Nominatim
   const reverseGeocode = async (lat: number, lng: number) => {
     setIsSearching(true);
     try {
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-        if (status === "OK" && results && results[0]) {
-          const formattedAddress = results[0].formatted_address;
-          setCurrentAddress(formattedAddress);
-          onLocationSelect(lat, lng, formattedAddress);
-        } else {
-          const fallbackAddress = `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-          setCurrentAddress(fallbackAddress);
-          onLocationSelect(lat, lng, fallbackAddress);
-        }
-        setIsSearching(false);
-      });
+      // Adding email parameter to comply with Nominatim's Usage Policy and reduce rate limiting
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&email=smartinvitation@example.com`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      const formattedAddress = data.display_name || `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      setCurrentAddress(formattedAddress);
+      onLocationSelect(lat, lng, formattedAddress);
     } catch (err) {
       console.error("Reverse geocoding fail:", err);
+      const fallbackAddress = `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      setCurrentAddress(fallbackAddress);
+      onLocationSelect(lat, lng, fallbackAddress);
+    } finally {
       setIsSearching(false);
     }
   };
 
-  const handleMapClick = (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      setMarkerPos({ lat, lng });
-      reverseGeocode(lat, lng);
-    }
-  };
+  // Direct Geocoding (Address string -> Coordinates) via Nominatim Search API
+  const handleAddressSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
 
-  const handleMarkerDragEnd = (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-      setMarkerPos({ lat, lng });
-      reverseGeocode(lat, lng);
-    }
-  };
+    setIsSearching(true);
+    try {
+      // Adding email parameter to comply with Nominatim's Usage Policy and reduce rate limiting
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchQuery
+        )}&limit=1&addressdetails=1&email=smartinvitation@example.com`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      const results = await response.json();
 
-  const onLoadAutocomplete = (autoC: google.maps.places.Autocomplete) => {
-    setAutocomplete(autoC);
-  };
+      if (results && results.length > 0) {
+        const { lat, lon, display_name } = results[0];
+        const newLat = parseFloat(lat);
+        const newLng = parseFloat(lon);
 
-  const onPlaceChanged = () => {
-    if (autocomplete !== null) {
-      const place = autocomplete.getPlace();
-      if (place.geometry && place.geometry.location) {
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        const address = place.formatted_address || place.name || "";
-        
-        setCenter({ lat, lng });
-        setMarkerPos({ lat, lng });
-        setCurrentAddress(address);
-        onLocationSelect(lat, lng, address);
+        if (leafletMap.current && markerRef.current) {
+          leafletMap.current.setView([newLat, newLng], 14);
+          markerRef.current.setLatLng([newLat, newLng]);
+          setCurrentAddress(display_name);
+          onLocationSelect(newLat, newLng, display_name);
+        }
+      } else {
+        alert("Location not found on OpenStreetMap. Try refining your query or dropping the pin manually.");
       }
+    } catch (err) {
+      console.error("Geocoding search failure:", err);
+      alert("Failed to search location. Please check your network or try again later.");
+    } finally {
+      setIsSearching(false);
     }
   };
-
-  if (loadError) {
-    return (
-      <div className="h-[250px] w-full rounded-2xl bg-red-500/10 border border-red-500/20 flex flex-col items-center justify-center p-4 text-center">
-        <p className="text-red-400 text-sm font-semibold mb-2">Failed to load Google Maps</p>
-        <p className="text-red-300 text-xs">Please check your NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-3 w-full">
       {/* Geocoding Address Search bar */}
-      {!isLoaded ? (
-        <div className="relative w-full h-[46px] bg-white/5 animate-pulse rounded-xl" />
-      ) : (
-        <Autocomplete onLoad={onLoadAutocomplete} onPlaceChanged={onPlaceChanged} className="w-full">
-          <div className="relative w-full">
-            <input
-              type="text"
-              placeholder="Search venue or address..."
-              className="w-full bg-white/5 border border-white/10 focus:border-wedding-gold/40 rounded-xl px-4 py-3 pl-10 text-sm outline-none text-white transition-all"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault(); // Prevent form submission on enter
-                }
-              }}
-            />
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
-          </div>
-        </Autocomplete>
-      )}
+      <form onSubmit={handleAddressSearch} className="flex gap-2 w-full">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search venue or address..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 focus:border-wedding-gold/40 rounded-xl px-4 py-3 pl-10 text-sm outline-none text-white transition-all"
+          />
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
+        </div>
+        <button
+          type="submit"
+          disabled={isSearching}
+          className="bg-wedding-purple-light hover:bg-wedding-purple-light/80 text-white rounded-xl px-4 py-3 text-sm font-semibold border border-wedding-gold/20 flex items-center gap-2 cursor-pointer transition-all duration-300 disabled:opacity-50 shrink-0"
+        >
+          {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+          <span>Search</span>
+        </button>
+      </form>
 
       {/* Interactive Map Canvas Container */}
-      <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 bg-wedding-purple-mid h-[250px]">
-        {!isLoaded ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-wedding-gold" />
-          </div>
-        ) : (
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={center}
-            zoom={14}
-            onClick={handleMapClick}
-            options={{
-              disableDefaultUI: true,
-              zoomControl: true,
-            }}
-          >
-            <MarkerF
-              position={markerPos}
-              draggable={true}
-              onDragEnd={handleMarkerDragEnd}
-            />
-          </GoogleMap>
-        )}
-
+      <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 bg-wedding-purple-mid">
+        <div ref={mapRef} className="h-[250px] w-full z-10" />
         {isSearching && (
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center z-20 pointer-events-none">
             <div className="bg-wedding-purple-dark border border-wedding-gold/30 rounded-xl p-3 flex items-center gap-2">
