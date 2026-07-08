@@ -1,51 +1,37 @@
-import fs from "fs";
-import path from "path";
+import { kv } from "@vercel/kv";
 import { EventData } from "../types";
 
-const DB_DIR = path.join(process.cwd(), "data");
-const DB_FILE = path.join(DB_DIR, "events.json");
+const EVENTS_KEY = "events_registry";
 
-// Check and ensure data directories and db.json exist
-function initializeDB(): void {
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-  }
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2), "utf-8");
-  }
-}
-
-// Fetch all events from JSON database
-export function readEvents(): EventData[] {
-  initializeDB();
+// Fetch all events from KV database
+export async function readEvents(): Promise<EventData[]> {
   try {
-    const rawData = fs.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(rawData);
+    const events = await kv.get<EventData[]>(EVENTS_KEY);
+    return events || [];
   } catch (error) {
-    console.error("Failed to load local events registry", error);
+    console.error("Failed to load events from KV", error);
     return [];
   }
 }
 
-// Persist events array to JSON database
-export function writeEvents(events: EventData[]): void {
-  initializeDB();
+// Persist events array to KV database
+export async function writeEvents(events: EventData[]): Promise<void> {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(events, null, 2), "utf-8");
+    await kv.set(EVENTS_KEY, events);
   } catch (error) {
-    console.error("Failed to commit changes to local database", error);
+    console.error("Failed to commit changes to KV database", error);
   }
 }
 
 // Query single event by UID
-export function getEventById(id: string): EventData | undefined {
-  const events = readEvents();
+export async function getEventById(id: string): Promise<EventData | undefined> {
+  const events = await readEvents();
   return events.find((e) => e.id === id);
 }
 
 // Create and store a new event record
-export function createEvent(event: Omit<EventData, "createdAt" | "updatedAt">): EventData {
-  const events = readEvents();
+export async function createEvent(event: Omit<EventData, "createdAt" | "updatedAt">): Promise<EventData> {
+  const events = await readEvents();
   const now = new Date().toISOString();
   const newEvent: EventData = {
     ...event,
@@ -53,16 +39,16 @@ export function createEvent(event: Omit<EventData, "createdAt" | "updatedAt">): 
     updatedAt: now,
   };
   events.push(newEvent);
-  writeEvents(events);
+  await writeEvents(events);
   return newEvent;
 }
 
 // Update details on an existing event record
-export function updateEvent(
+export async function updateEvent(
   id: string,
   updatedFields: Partial<Omit<EventData, "id" | "createdAt" | "updatedAt">>
-): EventData | undefined {
-  const events = readEvents();
+): Promise<EventData | undefined> {
+  const events = await readEvents();
   const idx = events.findIndex((e) => e.id === id);
   if (idx === -1) return undefined;
 
@@ -74,15 +60,15 @@ export function updateEvent(
   };
 
   events[idx] = updatedEvent;
-  writeEvents(events);
+  await writeEvents(events);
   return updatedEvent;
 }
 
 // Delete an event record
-export function deleteEvent(id: string): boolean {
-  const events = readEvents();
+export async function deleteEvent(id: string): Promise<boolean> {
+  const events = await readEvents();
   const filtered = events.filter((e) => e.id !== id);
   if (filtered.length === events.length) return false;
-  writeEvents(filtered);
+  await writeEvents(filtered);
   return true;
 }

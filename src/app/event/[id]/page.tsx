@@ -13,7 +13,7 @@ export default async function EventPage({ params, searchParams }: EventPageProps
   const themeQuery = resolvedSearchParams.theme || null;
 
   // Retrieve event details directly from filesystems on server side
-  const event = getEventById(id);
+  const event = await getEventById(id);
   if (!event) {
     notFound();
   }

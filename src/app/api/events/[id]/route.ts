@@ -8,7 +8,7 @@ interface RouteParams {
 export async function GET(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const event = getEventById(id);
+    const event = await getEventById(id);
     if (!event) {
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
@@ -25,7 +25,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const body = await request.json();
     
     // Perform update
-    const updated = updateEvent(id, {
+    const updated = await updateEvent(id, {
       eventName: body.eventName?.trim() || undefined,
       hostName: body.hostName?.trim() || undefined,
       venueName: body.venueName?.trim() || undefined,
@@ -58,7 +58,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const deleted = deleteEvent(id);
+    const deleted = await deleteEvent(id);
     if (!deleted) {
       return NextResponse.json({ error: "Event not found to delete" }, { status: 404 });
     }

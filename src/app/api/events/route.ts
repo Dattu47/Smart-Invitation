@@ -4,7 +4,7 @@ import { generateEventId } from "@/utils/id";
 
 export async function GET() {
   try {
-    const events = readEvents();
+    const events = await readEvents();
     // Sort events by creation timestamp descending
     const sorted = [...events].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const id = generateEventId();
 
-    const newEvent = createEvent({
+    const newEvent = await createEvent({
       id,
       eventName: body.eventName?.trim() || undefined,
       hostName: body.hostName?.trim() || undefined,
