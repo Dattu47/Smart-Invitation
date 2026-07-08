@@ -27,7 +27,6 @@ interface InvitationClientViewProps {
   themeQuery?: string | null;
 }
 
-// Automatically detect best theme based on keywords in the event title
 function detectTheme(eventName?: string, themeQuery?: string | null): InvitationTheme {
   if (themeQuery === "party" || themeQuery === "corporate" || themeQuery === "wedding") {
     return themeQuery as InvitationTheme;
@@ -58,6 +57,32 @@ function detectTheme(eventName?: string, themeQuery?: string | null): Invitation
   }
   
   return "wedding"; // Classic elegant purple/gold default
+}
+
+// Helper to transform viewer URLs to raw image URLs (like Google Drive)
+function getDirectImageUrl(url: string | undefined): string | undefined {
+  if (!url) return url;
+  
+  // Google Drive: https://drive.google.com/file/d/1B_xyz.../view
+  const gdriveMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (gdriveMatch) {
+    return `https://drive.google.com/uc?export=view&id=${gdriveMatch[1]}`;
+  }
+  
+  // Imgur: https://imgur.com/abc -> https://i.imgur.com/abc.jpg
+  if (url.includes("imgur.com") && !url.includes("i.imgur.com")) {
+    const imgurMatch = url.match(/imgur\.com\/([a-zA-Z0-9]+)$/);
+    if (imgurMatch) {
+      return `https://i.imgur.com/${imgurMatch[1]}.jpg`;
+    }
+  }
+
+  // Dropbox: dl=1 for direct download
+  if (url.includes("dropbox.com")) {
+    return url.replace("?dl=0", "").replace("www.dropbox.com", "dl.dropboxusercontent.com");
+  }
+
+  return url;
 }
 
 export default function InvitationClientView({ event, themeQuery }: InvitationClientViewProps) {
@@ -160,7 +185,7 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
           {event.coverImage ? (
             <div className="w-full h-56 relative overflow-hidden group">
               <img 
-                src={event.coverImage} 
+                src={getDirectImageUrl(event.coverImage)} 
                 alt="Event Cover" 
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                 onError={(e) => {
