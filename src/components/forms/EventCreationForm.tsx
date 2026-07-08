@@ -258,7 +258,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         >
           <div className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-wedding-gold" />
-            <span>Date & Schedule (Optional)</span>
+            <span>Date & Schedule (Required for Calendar)</span>
           </div>
           <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${openSection === "schedule" ? "rotate-180" : ""}`} />
         </button>
