@@ -146,18 +146,7 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
       {/* Content wrapper */}
       <main className="w-full max-w-md flex flex-col gap-6 relative z-10">
         
-        {/* Cover Image Banner (Conditional rendering) */}
-        {event.coverImage && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8 }}
-            className="w-full h-48 md:h-56 rounded-3xl overflow-hidden border border-white/10 shadow-lg relative"
-          >
-            <img src={event.coverImage} alt="Event Banner" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-          </motion.div>
-        )}
+
 
         {/* Hero title info */}
         {event.eventName && (

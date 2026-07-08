@@ -29,13 +29,7 @@ const MapComponent = dynamic(() => import("../MapComponent"), {
   )
 });
 
-// Curated default banner images matching different events
-const COVER_PRESETS = [
-  { name: "Elegant Wedding", url: "https://images.unsplash.com/photo-1519741497674-611481863552?w=800&auto=format&fit=crop&q=80" },
-  { name: "Night Celebration / Birthday", url: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&auto=format&fit=crop&q=80" },
-  { name: "Corporate Gathering", url: "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80" },
-  { name: "Vibrant Festival", url: "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&auto=format&fit=crop&q=80" },
-];
+
 
 interface EventCreationFormProps {
   initialData?: EventData;
@@ -54,7 +48,6 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
   const [hostName, setHostName] = useState(initialData?.hostName || "");
   const [venueName, setVenueName] = useState(initialData?.venueName || "");
   const [description, setDescription] = useState(initialData?.description || "");
-  const [coverImage, setCoverImage] = useState(initialData?.coverImage || "");
 
   const [date, setDate] = useState(initialData?.date || "");
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
@@ -104,7 +97,6 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
       endTime: endTime || undefined,
       description: description || undefined,
       phone: phone || undefined,
-      coverImage: coverImage || undefined,
       dressCode: dressCode || undefined,
       parkingInfo: parkingInfo || undefined,
       website: website || undefined,
@@ -250,34 +242,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
                 />
               </div>
 
-              {/* Cover Image Selector */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Cover Image</label>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {COVER_PRESETS.map((preset, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setCoverImage(preset.url)}
-                      className={`text-left p-2 rounded-xl border text-xs font-medium transition-all truncate flex items-center gap-1.5 cursor-pointer ${
-                        coverImage === preset.url
-                          ? "bg-wedding-gold/15 border-wedding-gold text-wedding-gold-light"
-                          : "bg-white/5 border-white/10 text-gray-300 hover:border-white/20"
-                      }`}
-                    >
-                      {coverImage === preset.url ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <ImageIcon className="w-3.5 h-3.5 shrink-0" />}
-                      <span>{preset.name}</span>
-                    </button>
-                  ))}
-                </div>
-                <input
-                  type="text"
-                  placeholder="Or paste custom image URL..."
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors"
-                />
-              </div>
+
             </motion.div>
           )}
         </AnimatePresence>
