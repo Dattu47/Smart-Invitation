@@ -18,4 +18,5 @@ export interface EventData {
   email?: string;
   createdAt: string;
   updatedAt: string;
+  compressedData?: string;
 }

@@ -21,12 +21,15 @@ import { EventData } from "@/types";
 export default function Home() {
   const [createdEvent, setCreatedEvent] = useState<EventData | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [eventLink, setEventLink] = useState<string>("");
   const [copied, setCopied] = useState(false);
 
   // Generate event URL and trigger QR Code generation on success
-  const handleSuccess = async (event: EventData) => {
+  const handleSuccess = async (event: EventData, compressedData: string) => {
     try {
-      const eventUrl = `${window.location.origin}/event/${event.id}`;
+      const eventUrl = `${window.location.origin}/invite?d=${compressedData}`;
+      setEventLink(eventUrl);
+      
       // Generate QR data URL
       const qrData = await QRCode.toDataURL(eventUrl, {
         width: 400,
@@ -38,7 +41,13 @@ export default function Home() {
       });
       
       setQrCodeUrl(qrData);
-      setCreatedEvent(event);
+      
+      const newEvent = { ...event, id: Date.now().toString(), compressedData };
+      setCreatedEvent(newEvent);
+      
+      // Save to localStorage for Dashboard history
+      const savedEvents = JSON.parse(localStorage.getItem("smart_invitations") || "[]");
+      localStorage.setItem("smart_invitations", JSON.stringify([newEvent, ...savedEvents]));
 
       // Trigger celebratory confetti
       confetti({
@@ -53,9 +62,8 @@ export default function Home() {
   };
 
   const handleCopyLink = () => {
-    if (!createdEvent) return;
-    const eventUrl = `${window.location.origin}/event/${createdEvent.id}`;
-    navigator.clipboard.writeText(eventUrl);
+    if (!eventLink) return;
+    navigator.clipboard.writeText(eventLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -68,7 +76,7 @@ export default function Home() {
     const slug = (createdEvent.eventName || "event")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "_");
-    link.download = `qr_${slug}_${createdEvent.id}.png`;
+    link.download = `qr_${slug}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -77,6 +85,7 @@ export default function Home() {
   const closeSuccessModal = () => {
     setCreatedEvent(null);
     setQrCodeUrl("");
+    setEventLink("");
   };
 
   return (
@@ -95,20 +104,13 @@ export default function Home() {
               <Sparkles className="w-6 h-6 text-wedding-gold animate-pulse" />
               <span className="font-serif text-lg font-bold text-gold-gradient">Smart Invitation</span>
             </div>
-            <Link 
-              href="/dashboard"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.08] hover:border-wedding-gold/30 text-xs font-semibold text-wedding-gold-light transition-all cursor-pointer"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              <span>Organizer Dashboard</span>
-            </Link>
           </div>
 
           <h1 className="font-serif text-4xl md:text-5xl font-bold tracking-wide text-gold-gradient leading-tight mt-4">
             Create Smart QR
           </h1>
           <p className="text-sm text-wedding-pink/60 uppercase tracking-widest font-semibold mt-1">
-            Location-First Event Invitation
+            Zero-Database Free Invitation
           </p>
         </header>
 
@@ -146,7 +148,7 @@ export default function Home() {
                 Invitation Generated!
               </h2>
               <p className="text-xs text-gray-300 mb-6">
-                Your QR Code invitation is ready to be shared.
+                Your free QR Code invitation is ready to be shared.
               </p>
 
               {/* QR Code Container */}
@@ -159,10 +161,7 @@ export default function Home() {
               {/* Event Link Row */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs flex items-center justify-between gap-3 mb-6 select-all">
                 <span className="text-gray-300 truncate text-left flex-1">
-                  {window.location.origin}/event/{createdEvent.id}
-                </span>
-                <span className="text-[10px] bg-wedding-gold/20 text-wedding-gold border border-wedding-gold/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
-                  {createdEvent.id}
+                  {eventLink}
                 </span>
               </div>
 
@@ -195,7 +194,7 @@ export default function Home() {
 
               {/* View Live Invitation Link */}
               <Link
-                href={`/event/${createdEvent.id}`}
+                href={eventLink}
                 target="_blank"
                 className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-gradient-to-r from-wedding-gold-dark via-wedding-gold to-wedding-gold-dark text-wedding-purple-dark font-bold text-sm shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
               >

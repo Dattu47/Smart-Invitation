@@ -10,11 +10,10 @@ import {
   Info, 
   ChevronDown, 
   Phone, 
-  Image as ImageIcon,
-  Loader2,
-  CheckCircle2
+  Loader2
 } from "lucide-react";
 import { EventData } from "@/types";
+import LZString from "lz-string";
 
 // Load Leaflet component dynamically only on client side to prevent Next SSR failures
 const MapComponent = dynamic(() => import("../MapComponent"), { 
@@ -29,16 +28,12 @@ const MapComponent = dynamic(() => import("../MapComponent"), {
   )
 });
 
-
-
 interface EventCreationFormProps {
   initialData?: EventData;
-  onSuccess: (event: EventData) => void;
+  onSuccess: (event: EventData, compressedData: string) => void;
 }
 
 export default function EventCreationForm({ initialData, onSuccess }: EventCreationFormProps) {
-  const isEditMode = !!initialData;
-
   // Form States
   const [address, setAddress] = useState(initialData?.address || "");
   const [latitude, setLatitude] = useState<number>(initialData?.latitude || 17.385044);
@@ -85,44 +80,52 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
     setIsSubmitting(true);
     setErrorMsg("");
 
-    const payload = {
-      eventName: eventName || undefined,
-      hostName: hostName || undefined,
-      venueName: venueName || undefined,
-      address,
-      latitude,
-      longitude,
-      date: date || undefined,
-      startTime: startTime || undefined,
-      endTime: endTime || undefined,
-      description: description || undefined,
-      phone: phone || undefined,
-      dressCode: dressCode || undefined,
-      parkingInfo: parkingInfo || undefined,
-      website: website || undefined,
-      email: email || undefined,
-    };
+    // Simulate short loading state for UX
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     try {
-      const url = isEditMode ? `/api/events/${initialData.id}` : "/api/events";
-      const method = isEditMode ? "PUT" : "POST";
+      const payload: Omit<EventData, "id" | "createdAt" | "updatedAt"> = {
+        eventName: eventName || undefined,
+        hostName: hostName || undefined,
+        venueName: venueName || undefined,
+        address,
+        latitude,
+        longitude,
+        date: date || undefined,
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+        description: description || undefined,
+        phone: phone || undefined,
+        dressCode: dressCode || undefined,
+        parkingInfo: parkingInfo || undefined,
+        website: website || undefined,
+        email: email || undefined,
+      };
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // Strip out undefined values to save compression space
+      const cleanPayload = Object.fromEntries(
+        Object.entries(payload).filter(([_, v]) => v !== undefined && v !== "")
+      );
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to submit event details");
-      }
+      // Compress data for URL embedding
+      const jsonString = JSON.stringify(cleanPayload);
+      const compressedString = LZString.compressToEncodedURIComponent(jsonString);
 
-      const savedEvent = await res.json();
-      onSuccess(savedEvent);
+      // Construct a faux EventData to keep UI compatibility
+      const fauxEvent: EventData = {
+        id: "compressed", // Not used for DB anymore
+        ...cleanPayload,
+        address: address, // Ensure required fields
+        latitude: latitude,
+        longitude: longitude,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      onSuccess(fauxEvent, compressedString);
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || "Failed to record event. Please check connection.");
+      setErrorMsg(err.message || "Failed to generate invitation.");
     } finally {
       setIsSubmitting(false);
     }
@@ -241,8 +244,6 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors resize-none"
                 />
               </div>
-
-
             </motion.div>
           )}
         </AnimatePresence>
@@ -404,10 +405,10 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         {isSubmitting ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Saving Event...</span>
+            <span>Generating Invitation...</span>
           </>
         ) : (
-          <span>{isEditMode ? "Save Changes" : "Generate Invitation QR"}</span>
+          <span>Generate Invitation QR</span>
         )}
       </button>
     </form>
