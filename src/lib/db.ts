@@ -20,6 +20,7 @@ export async function writeEvents(events: EventData[]): Promise<void> {
     await kv.set(EVENTS_KEY, events);
   } catch (error) {
     console.error("Failed to commit changes to KV database", error);
+    throw error;
   }
 }
 
