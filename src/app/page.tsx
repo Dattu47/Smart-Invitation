@@ -25,9 +25,9 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
 
   // Generate event URL and trigger QR Code generation on success
-  const handleSuccess = async (event: EventData, compressedData: string) => {
+  const handleSuccess = async (event: EventData, documentId: string) => {
     try {
-      const eventUrl = `${window.location.origin}/invite?d=${compressedData}`;
+      const eventUrl = `${window.location.origin}/invite/${documentId}`;
       setEventLink(eventUrl);
       
       // Generate QR data URL
@@ -42,7 +42,7 @@ export default function Home() {
       
       setQrCodeUrl(qrData);
       
-      const newEvent = { ...event, id: Date.now().toString(), compressedData };
+      const newEvent = { ...event, id: documentId };
       setCreatedEvent(newEvent);
       
       // Save to localStorage for Dashboard history

@@ -53,7 +53,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
   const [website, setWebsite] = useState(initialData?.website || "");
   const [dressCode, setDressCode] = useState(initialData?.dressCode || "");
   const [parkingInfo, setParkingInfo] = useState(initialData?.parkingInfo || "");
-  const [coverImage, setCoverImage] = useState(initialData?.coverImage || "");
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
 
   // UI accordion status states
   const [openSection, setOpenSection] = useState<string | null>("location");
@@ -81,11 +81,23 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
     setIsSubmitting(true);
     setErrorMsg("");
 
-    // Simulate short loading state for UX
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
     try {
-      const payload: Omit<EventData, "id" | "createdAt" | "updatedAt"> = {
+      const { db, storage } = await import("@/lib/firebase");
+      const { collection, addDoc } = await import("firebase/firestore");
+      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
+
+      let uploadedImageUrl = undefined;
+
+      // Upload image to Firebase Storage if selected
+      if (coverImageFile) {
+        const fileExtension = coverImageFile.name.split('.').pop();
+        const fileName = `covers/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+        const storageRef = ref(storage, fileName);
+        await uploadBytes(storageRef, coverImageFile);
+        uploadedImageUrl = await getDownloadURL(storageRef);
+      }
+
+      const payload = {
         eventName: eventName || undefined,
         hostName: hostName || undefined,
         venueName: venueName || undefined,
@@ -101,30 +113,32 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         parkingInfo: parkingInfo || undefined,
         website: website || undefined,
         email: email || undefined,
-        coverImage: coverImage || undefined,
-      };
-
-      // Strip out undefined values to save compression space
-      const cleanPayload = Object.fromEntries(
-        Object.entries(payload).filter(([_, v]) => v !== undefined && v !== "")
-      );
-
-      // Compress data for URL embedding
-      const jsonString = JSON.stringify(cleanPayload);
-      const compressedString = LZString.compressToEncodedURIComponent(jsonString);
-
-      // Construct a faux EventData to keep UI compatibility
-      const fauxEvent: EventData = {
-        id: "compressed", // Not used for DB anymore
-        ...cleanPayload,
-        address: address, // Ensure required fields
-        latitude: latitude,
-        longitude: longitude,
+        coverImage: uploadedImageUrl,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
-      onSuccess(fauxEvent, compressedString);
+      // Strip out undefined values to save space
+      const cleanPayload = Object.fromEntries(
+        Object.entries(payload).filter(([_, v]) => v !== undefined && v !== "")
+      );
+
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, "events"), cleanPayload);
+
+      // Construct a faux EventData to keep UI compatibility
+      const savedEvent: EventData = {
+        id: docRef.id,
+        ...cleanPayload,
+        address: address, // Ensure required fields
+        latitude: latitude,
+        longitude: longitude,
+        createdAt: cleanPayload.createdAt as string,
+        updatedAt: cleanPayload.updatedAt as string,
+      };
+
+      // Pass the Firestore document ID to the success handler
+      onSuccess(savedEvent, docRef.id);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || "Failed to generate invitation.");
@@ -247,18 +261,21 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
                 />
               </div>
 
-              {/* Photo URL */}
+              {/* Photo Upload */}
               <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Photo URL</label>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Event Photo (Optional)</label>
                 <input
-                  type="url"
-                  placeholder="Paste a link to an image (e.g., from Imgur, Google Drive)"
-                  value={coverImage}
-                  onChange={(e) => setCoverImage(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors"
+                  type="file"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                      setCoverImageFile(e.target.files[0]);
+                    }
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-wedding-gold/20 file:text-wedding-gold hover:file:bg-wedding-gold/30"
                 />
                 <p className="text-[10px] text-gray-500 mt-1.5 ml-1 leading-snug">
-                  To keep your QR code free and scannable, we use image links instead of direct uploads. Paste any public image link here.
+                  Upload a photo to be displayed beautifully at the top of your invitation.
                 </p>
               </div>
             </motion.div>
