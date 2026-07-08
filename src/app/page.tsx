@@ -1,65 +1,211 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Sparkles, 
+  LayoutDashboard, 
+  QrCode, 
+  Copy, 
+  Download, 
+  ExternalLink,
+  Check,
+  X 
+} from "lucide-react";
+import QRCode from "qrcode";
+import confetti from "canvas-confetti";
+import EventCreationForm from "@/components/forms/EventCreationForm";
+import { EventData } from "@/types";
 
 export default function Home() {
+  const [createdEvent, setCreatedEvent] = useState<EventData | null>(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+
+  // Generate event URL and trigger QR Code generation on success
+  const handleSuccess = async (event: EventData) => {
+    try {
+      const eventUrl = `${window.location.origin}/event/${event.id}`;
+      // Generate QR data URL
+      const qrData = await QRCode.toDataURL(eventUrl, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: "#0e051d", // Deep purple
+          light: "#ffffff",
+        },
+      });
+      
+      setQrCodeUrl(qrData);
+      setCreatedEvent(event);
+
+      // Trigger celebratory confetti
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ["#d4af37", "#fbcfe8", "#fda4af", "#aa841c"],
+      });
+    } catch (err) {
+      console.error("Failed to generate QR Code image", err);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!createdEvent) return;
+    const eventUrl = `${window.location.origin}/event/${createdEvent.id}`;
+    navigator.clipboard.writeText(eventUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrCodeUrl || !createdEvent) return;
+    const link = document.createElement("a");
+    link.href = qrCodeUrl;
+    // Friendly file name
+    const slug = (createdEvent.eventName || "event")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_");
+    link.download = `qr_${slug}_${createdEvent.id}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const closeSuccessModal = () => {
+    setCreatedEvent(null);
+    setQrCodeUrl("");
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="relative min-h-screen w-full flex flex-col items-center justify-start bg-wedding-purple-dark text-white overflow-hidden py-10 px-4 md:py-16">
+      {/* Background Ambient Glows */}
+      <div className="absolute top-[-10%] left-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br from-wedding-purple-mid to-wedding-purple-light opacity-30 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br from-wedding-purple-light to-wedding-pink opacity-25 blur-[120px] pointer-events-none" />
+
+      {/* Main Container */}
+      <main className="w-full max-w-lg flex flex-col gap-8 relative z-10">
+        
+        {/* Header Section */}
+        <header className="flex flex-col items-center text-center gap-2 select-none">
+          <div className="flex items-center justify-between w-full mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-6 h-6 text-wedding-gold animate-pulse" />
+              <span className="font-serif text-lg font-bold text-gold-gradient">Smart Invitation</span>
+            </div>
+            <Link 
+              href="/dashboard"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.08] hover:border-wedding-gold/30 text-xs font-semibold text-wedding-gold-light transition-all cursor-pointer"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              <span>Organizer Dashboard</span>
+            </Link>
+          </div>
+
+          <h1 className="font-serif text-4xl md:text-5xl font-bold tracking-wide text-gold-gradient leading-tight mt-4">
+            Create Smart QR
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-wedding-pink/60 uppercase tracking-widest font-semibold mt-1">
+            Location-First Event Invitation
           </p>
+        </header>
+
+        {/* Event Form */}
+        <div className="w-full bg-wedding-purple-mid/20 border border-white/[0.03] rounded-3xl p-6 md:p-8 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.2)]">
+          <EventCreationForm onSuccess={handleSuccess} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        {/* Footer */}
+        <footer className="text-center text-xs text-gray-500/50 mt-4 select-none">
+          <p>© 2026 Smart Invitation Portal. All rights reserved.</p>
+        </footer>
       </main>
+
+      {/* Success / QR Code Modal Overlay */}
+      <AnimatePresence>
+        {createdEvent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-md bg-wedding-purple-dark/95 border border-wedding-gold/30 rounded-3xl p-6 shadow-[0_10px_50px_rgba(212,175,55,0.15)] text-center text-white"
+            >
+              {/* Close Button */}
+              <button
+                onClick={closeSuccessModal}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <Sparkles className="w-10 h-10 text-wedding-gold mx-auto mb-3 animate-pulse" />
+              <h2 className="font-serif text-2xl font-semibold text-gold-gradient tracking-wide mb-1">
+                Invitation Generated!
+              </h2>
+              <p className="text-xs text-gray-300 mb-6">
+                Your QR Code invitation is ready to be shared.
+              </p>
+
+              {/* QR Code Container */}
+              {qrCodeUrl && (
+                <div className="w-48 h-48 mx-auto bg-white p-3 rounded-2xl mb-6 shadow-inner flex items-center justify-center">
+                  <img src={qrCodeUrl} alt="Event Invitation QR Code" className="w-full h-full object-contain" />
+                </div>
+              )}
+
+              {/* Event Link Row */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs flex items-center justify-between gap-3 mb-6 select-all">
+                <span className="text-gray-300 truncate text-left flex-1">
+                  {window.location.origin}/event/{createdEvent.id}
+                </span>
+                <span className="text-[10px] bg-wedding-gold/20 text-wedding-gold border border-wedding-gold/30 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">
+                  {createdEvent.id}
+                </span>
+              </div>
+
+              {/* Actions Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={handleCopyLink}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-xs font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span className="text-green-400">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-wedding-gold" />
+                      <span>Copy Link</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleDownloadQR}
+                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-xs font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer"
+                >
+                  <Download className="w-4 h-4 text-wedding-gold" />
+                  <span>Download QR</span>
+                </button>
+              </div>
+
+              {/* View Live Invitation Link */}
+              <Link
+                href={`/event/${createdEvent.id}`}
+                target="_blank"
+                className="w-full flex items-center justify-center gap-2 py-4 px-6 rounded-xl bg-gradient-to-r from-wedding-gold-dark via-wedding-gold to-wedding-gold-dark text-wedding-purple-dark font-bold text-sm shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>View Live Invitation</span>
+              </Link>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0e051d; /* Default is Wedding Deep Royal Purple */
+  --foreground: #ffffff;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-serif: var(--font-cormorant), ui-serif, Georgia;
+  
+  /* Wedding Theme Colors */
+  --color-wedding-purple-dark: #0e051d;
+  --color-wedding-purple-mid: #1d0f36;
+  --color-wedding-purple-light: #311b57;
+  --color-wedding-gold-light: #f9f5e8;
+  --color-wedding-gold: #d4af37;
+  --color-wedding-gold-dark: #aa841c;
+  --color-wedding-pink: #fbcfe8;
+  
+  /* Party Theme Colors */
+  --color-party-blue-dark: #050b18;
+  --color-party-blue-mid: #0b152c;
+  --color-party-blue-light: #16223f;
+  --color-party-cyan: #22d3ee;
+  --color-party-pink: #f43f5e;
+  --color-party-orange: #ff7e5f;
+  
+  /* Corporate Theme Colors */
+  --color-corp-dark: #0d0e12;
+  --color-corp-mid: #181b24;
+  --color-corp-light: #2a2e3d;
+  --color-corp-amber: #eab308;
+  --color-corp-amber-light: #fef08a;
+  --color-corp-silver: #cbd5e1;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
+
+/* --- Wedding Theme Utilities --- */
+.text-wedding-gradient {
+  background: linear-gradient(135deg, #f9f5e8 0%, #d4af37 50%, #aa841c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-wedding-glass {
+  background: rgba(29, 15, 54, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.bg-wedding-glass:hover {
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.1);
+}
+
+.wedding-glow {
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.1), inset 0 0 15px rgba(212, 175, 55, 0.05);
+}
+
+/* --- Party/Birthday Theme Utilities --- */
+.text-party-gradient {
+  background: linear-gradient(135deg, #22d3ee 0%, #ec4899 50%, #f43f5e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-party-glass {
+  background: rgba(11, 21, 44, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.bg-party-glass:hover {
+  border-color: rgba(244, 63, 94, 0.35);
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.15);
+}
+
+.party-glow {
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.1), inset 0 0 15px rgba(34, 211, 238, 0.05);
+}
+
+/* --- Corporate Theme Utilities --- */
+.text-corp-gradient {
+  background: linear-gradient(135deg, #cbd5e1 0%, #ffffff 50%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-corp-glass {
+  background: rgba(24, 27, 36, 0.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(203, 213, 225, 0.15);
+}
+
+.bg-corp-glass:hover {
+  border-color: rgba(234, 179, 8, 0.3);
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.08);
+}
+
+.corp-glow {
+  box-shadow: 0 0 15px rgba(203, 213, 225, 0.05);
+}
+
+/* --- Sparkle / Heart Float Keyframes --- */
+@keyframes floatUp {
+  0% {
+    transform: translateY(100vh) scale(0.5);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-10vh) scale(1.2);
+    opacity: 0;
+  }
+}
+
+.animate-float-particle {
+  animation: floatUp 15s linear infinite;
+}
+
+
