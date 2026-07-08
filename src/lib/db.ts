@@ -1,10 +1,38 @@
 import { kv } from "@vercel/kv";
+import fs from "fs";
+import path from "path";
 import { EventData } from "../types";
 
 const EVENTS_KEY = "events_registry";
 
-// Fetch all events from KV database
+// Determine if we should use local fallback (when KV env vars are missing, like on localhost)
+const useLocalFallback = !process.env.KV_REST_API_URL;
+const DB_DIR = path.join(process.cwd(), "data");
+const DB_FILE = path.join(DB_DIR, "events.json");
+
+// Helper for local fallback initialization
+function initializeLocalDB(): void {
+  if (!fs.existsSync(DB_DIR)) {
+    fs.mkdirSync(DB_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2), "utf-8");
+  }
+}
+
+// Fetch all events
 export async function readEvents(): Promise<EventData[]> {
+  if (useLocalFallback) {
+    try {
+      initializeLocalDB();
+      const rawData = fs.readFileSync(DB_FILE, "utf-8");
+      return JSON.parse(rawData);
+    } catch (error) {
+      console.error("Failed to load local events registry", error);
+      return [];
+    }
+  }
+
   try {
     const events = await kv.get<EventData[]>(EVENTS_KEY);
     return events || [];
@@ -14,8 +42,19 @@ export async function readEvents(): Promise<EventData[]> {
   }
 }
 
-// Persist events array to KV database
+// Persist events array
 export async function writeEvents(events: EventData[]): Promise<void> {
+  if (useLocalFallback) {
+    try {
+      initializeLocalDB();
+      fs.writeFileSync(DB_FILE, JSON.stringify(events, null, 2), "utf-8");
+      return;
+    } catch (error) {
+      console.error("Failed to commit changes to local database", error);
+      throw error;
+    }
+  }
+
   try {
     await kv.set(EVENTS_KEY, events);
   } catch (error) {
