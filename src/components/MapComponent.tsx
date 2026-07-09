@@ -57,8 +57,7 @@ export default function MapComponent({
   };
 
   // Direct Geocoding (Address string -> Coordinates) via Nominatim Search API
-  const handleAddressSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddressSearch = async () => {
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
@@ -148,26 +147,33 @@ export default function MapComponent({
   return (
     <div className="flex flex-col gap-3 w-full">
       {/* Geocoding Address Search bar */}
-      <form onSubmit={handleAddressSearch} className="flex gap-2 w-full">
+      <div className="flex gap-2 w-full">
         <div className="relative flex-1">
           <input
             type="text"
             placeholder="Search venue or address..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddressSearch();
+              }
+            }}
             className="w-full bg-white/5 border border-white/10 focus:border-wedding-gold/40 rounded-xl px-4 py-3 pl-10 text-sm outline-none text-white transition-all"
           />
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
         </div>
         <button
-          type="submit"
+          type="button"
+          onClick={handleAddressSearch}
           disabled={isSearching}
           className="bg-wedding-purple-light hover:bg-wedding-purple-light/80 text-white rounded-xl px-4 py-3 text-sm font-semibold border border-wedding-gold/20 flex items-center gap-2 cursor-pointer transition-all duration-300 disabled:opacity-50 shrink-0"
         >
           {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           <span>Search</span>
         </button>
-      </form>
+      </div>
 
       {/* Interactive Map Canvas Container */}
       <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 bg-wedding-purple-mid">
