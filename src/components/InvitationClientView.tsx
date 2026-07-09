@@ -13,8 +13,7 @@ import {
   Car, 
   FileText,
   User,
-  Heart,
-  Camera
+  Heart
 } from "lucide-react";
 import { EventData } from "@/types";
 import { THEME_STYLES_MAP, InvitationTheme } from "@/config/themes";

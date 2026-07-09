@@ -33,7 +33,66 @@ export default function MapComponent({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [currentAddress, setCurrentAddress] = useState(initialAddress);
+
+  // Reverse Geocoding (Coordinates -> Address string) via OpenStreetMap Nominatim
+  const reverseGeocode = async (lat: number, lng: number) => {
+    setIsSearching(true);
+    try {
+      // Adding email parameter to comply with Nominatim's Usage Policy and reduce rate limiting
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&email=smartinvitation@example.com`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      const data = await response.json();
+      const formattedAddress = data.display_name || `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      onLocationSelect(lat, lng, formattedAddress);
+    } catch (err) {
+      console.error("Reverse geocoding fail:", err);
+      const fallbackAddress = `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      onLocationSelect(lat, lng, fallbackAddress);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Direct Geocoding (Address string -> Coordinates) via Nominatim Search API
+  const handleAddressSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setIsSearching(true);
+    try {
+      // Adding email parameter to comply with Nominatim's Usage Policy and reduce rate limiting
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          searchQuery
+        )}&limit=1&addressdetails=1&email=smartinvitation@example.com`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      if (!response.ok) throw new Error("Network response was not ok");
+      const results = await response.json();
+
+      if (results && results.length > 0) {
+        const { lat, lon, display_name } = results[0];
+        const newLat = parseFloat(lat);
+        const newLng = parseFloat(lon);
+
+        if (leafletMap.current && markerRef.current) {
+          leafletMap.current.setView([newLat, newLng], 14);
+          markerRef.current.setLatLng([newLat, newLng]);
+          onLocationSelect(newLat, newLng, display_name);
+        }
+      } else {
+        alert("Location not found on OpenStreetMap. Try refining your query or dropping the pin manually.");
+      }
+    } catch (err) {
+      console.error("Geocoding search failure:", err);
+      alert("Failed to search location. Please check your network or try again later.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   // Initialize Map
   useEffect(() => {
@@ -74,6 +133,7 @@ export default function MapComponent({
         leafletMap.current = null;
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update map view if initial position updates (e.g., when editing existing event)
@@ -82,74 +142,8 @@ export default function MapComponent({
       const latLng = L.latLng(initialLat, initialLng);
       markerRef.current.setLatLng(latLng);
       leafletMap.current.setView(latLng, 14);
-      if (initialAddress) {
-        setCurrentAddress(initialAddress);
-      }
     }
-  }, [initialLat, initialLng, initialAddress]);
-
-  // Reverse Geocoding (Coordinates -> Address string) via OpenStreetMap Nominatim
-  const reverseGeocode = async (lat: number, lng: number) => {
-    setIsSearching(true);
-    try {
-      // Adding email parameter to comply with Nominatim's Usage Policy and reduce rate limiting
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&email=smartinvitation@example.com`,
-        { headers: { "Accept-Language": "en" } }
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-      const formattedAddress = data.display_name || `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      setCurrentAddress(formattedAddress);
-      onLocationSelect(lat, lng, formattedAddress);
-    } catch (err) {
-      console.error("Reverse geocoding fail:", err);
-      const fallbackAddress = `Location at ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      setCurrentAddress(fallbackAddress);
-      onLocationSelect(lat, lng, fallbackAddress);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Direct Geocoding (Address string -> Coordinates) via Nominatim Search API
-  const handleAddressSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    try {
-      // Adding email parameter to comply with Nominatim's Usage Policy and reduce rate limiting
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          searchQuery
-        )}&limit=1&addressdetails=1&email=smartinvitation@example.com`,
-        { headers: { "Accept-Language": "en" } }
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
-      const results = await response.json();
-
-      if (results && results.length > 0) {
-        const { lat, lon, display_name } = results[0];
-        const newLat = parseFloat(lat);
-        const newLng = parseFloat(lon);
-
-        if (leafletMap.current && markerRef.current) {
-          leafletMap.current.setView([newLat, newLng], 14);
-          markerRef.current.setLatLng([newLat, newLng]);
-          setCurrentAddress(display_name);
-          onLocationSelect(newLat, newLng, display_name);
-        }
-      } else {
-        alert("Location not found on OpenStreetMap. Try refining your query or dropping the pin manually.");
-      }
-    } catch (err) {
-      console.error("Geocoding search failure:", err);
-      alert("Failed to search location. Please check your network or try again later.");
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  }, [initialLat, initialLng]);
 
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -189,15 +183,16 @@ export default function MapComponent({
       </div>
 
       {/* Selection Display Info */}
-      {currentAddress && (
+      {initialAddress && (
         <div className="flex items-start gap-2 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs text-gray-300">
           <MapPin className="w-4 h-4 text-wedding-gold shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-wedding-gold-light mb-0.5">Selected Coordinates/Address:</p>
-            <p className="leading-relaxed">{currentAddress}</p>
+            <p className="leading-relaxed">{initialAddress}</p>
           </div>
         </div>
       )}
     </div>
   );
 }
+

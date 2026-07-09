@@ -23,16 +23,16 @@ import { EventData } from "@/types";
 import EventCreationForm from "@/components/forms/EventCreationForm";
 
 // Self-contained dynamic QR Code renderer for card listings
-function DashboardQR({ compressedData }: { compressedData?: string }) {
+function DashboardQR({ eventId }: { eventId: string }) {
   const [src, setSrc] = useState("");
 
   useEffect(() => {
-    if (!compressedData) return;
-    const url = `${window.location.origin}/invite?d=${compressedData}`;
+    if (!eventId) return;
+    const url = `${window.location.origin}/invite/${eventId}`;
     QRCode.toDataURL(url, { margin: 1, width: 200, color: { dark: "#0e051d" } })
       .then(setSrc)
       .catch((e) => console.error(e));
-  }, [compressedData]);
+  }, [eventId]);
 
   return src ? (
     <img src={src} alt="Event QR" className="w-16 h-16 rounded-xl object-contain bg-white p-1" />
@@ -51,11 +51,6 @@ export default function Dashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Fetch events list on mount
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
   const fetchEvents = () => {
     setIsLoading(true);
     try {
@@ -68,9 +63,15 @@ export default function Dashboard() {
     }
   };
 
+  // Fetch events list on mount
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      fetchEvents();
+    });
+  }, []);
+
   const handleCopyLink = (event: EventData) => {
-    if (!event.compressedData) return;
-    const url = `${window.location.origin}/invite?d=${event.compressedData}`;
+    const url = `${window.location.origin}/invite/${event.id}`;
     navigator.clipboard.writeText(url);
     setCopiedId(event.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -78,8 +79,7 @@ export default function Dashboard() {
 
   const handleDownloadQR = async (event: EventData) => {
     try {
-      if (!event.compressedData) return;
-      const url = `${window.location.origin}/invite?d=${event.compressedData}`;
+      const url = `${window.location.origin}/invite/${event.id}`;
       const qrData = await QRCode.toDataURL(url, { width: 500, margin: 1 });
       
       const link = document.createElement("a");
@@ -103,8 +103,8 @@ export default function Dashboard() {
     setDeleteConfirmId(null);
   };
 
-  const handleEditSuccess = (updatedEvent: EventData, compressedData: string) => {
-    const newEvent = { ...updatedEvent, id: editingEvent!.id, compressedData };
+  const handleEditSuccess = (updatedEvent: EventData) => {
+    const newEvent = { ...updatedEvent, id: editingEvent!.id };
     const updatedEvents = events.map((e) => (e.id === newEvent.id ? newEvent : e));
     setEvents(updatedEvents);
     localStorage.setItem("smart_invitations", JSON.stringify(updatedEvents));
@@ -194,7 +194,7 @@ export default function Dashboard() {
                   <div className="flex gap-4">
                     {/* QR Code preview */}
                     <div className="shrink-0">
-                      <DashboardQR compressedData={event.compressedData} />
+                      <DashboardQR eventId={event.id} />
                     </div>
 
                     {/* Metadata summary */}
@@ -234,7 +234,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-1">
                       {/* View Live */}
                       <Link
-                        href={`/invite?d=${event.compressedData}`}
+                        href={`/invite/${event.id}`}
                         target="_blank"
                         className="p-2.5 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
                         title="View Live Invitation"

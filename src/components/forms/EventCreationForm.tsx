@@ -9,11 +9,9 @@ import {
   Calendar, 
   Info, 
   ChevronDown, 
-  Phone, 
   Loader2
 } from "lucide-react";
 import { EventData } from "@/types";
-import LZString from "lz-string";
 
 // Load Leaflet component dynamically only on client side to prevent Next SSR failures
 const MapComponent = dynamic(() => import("../MapComponent"), { 
@@ -30,7 +28,7 @@ const MapComponent = dynamic(() => import("../MapComponent"), {
 
 interface EventCreationFormProps {
   initialData?: EventData;
-  onSuccess: (event: EventData, compressedData: string) => void;
+  onSuccess: (event: EventData, docId: string) => void;
 }
 
 export default function EventCreationForm({ initialData, onSuccess }: EventCreationFormProps) {
@@ -120,7 +118,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
 
       // Strip out undefined values to save space
       const cleanPayload = Object.fromEntries(
-        Object.entries(payload).filter(([_, v]) => v !== undefined && v !== "")
+        Object.entries(payload).filter(([, v]) => v !== undefined && v !== "")
       );
 
       // Save to Firestore
@@ -139,9 +137,9 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
 
       // Pass the Firestore document ID to the success handler
       onSuccess(savedEvent, docRef.id);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || "Failed to generate invitation.");
+      setErrorMsg(err instanceof Error ? err.message : "Failed to generate invitation.");
     } finally {
       setIsSubmitting(false);
     }

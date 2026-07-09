@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CalendarRange, Loader2, Calendar as CalendarIcon, FileDown, ChevronDown } from "lucide-react";
-import { EventDetails } from "../config/event";
+import { EventDetails } from "@/types";
 import { ThemeStyles } from "../config/themes";
 import { generateICSContent, downloadICSFile } from "../utils/calendar";
 import { motion, AnimatePresence } from "framer-motion";

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Navigation, Loader2 } from "lucide-react";
+import { Navigation } from "lucide-react";
 import { ThemeStyles } from "../config/themes";
 
 interface DirectionsButtonProps {

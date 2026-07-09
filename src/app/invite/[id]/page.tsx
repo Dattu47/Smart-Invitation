@@ -1,4 +1,4 @@
-import { Metadata, ResolvingMetadata } from "next";
+import { Metadata } from "next";
 import InvitationClientView from "@/components/InvitationClientView";
 import { EventData } from "@/types";
 import { db } from "@/lib/firebase";
@@ -10,8 +10,7 @@ interface InvitePageProps {
 }
 
 export async function generateMetadata(
-  props: InvitePageProps,
-  parent: ResolvingMetadata
+  props: InvitePageProps
 ): Promise<Metadata> {
   const params = await props.params;
   const id = params.id;

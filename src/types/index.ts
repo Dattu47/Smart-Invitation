@@ -20,3 +20,16 @@ export interface EventData {
   updatedAt: string;
   compressedData?: string;
 }
+export interface EventDetails {
+  title: string;
+  coupleNames: string;
+  date: string;
+  time: string;
+  venueName: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  startDateTime: string; // ISO string with timezone or UTC
+  endDateTime: string;   // ISO string with timezone or UTC
+  description: string;
+}
