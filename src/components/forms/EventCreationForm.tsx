@@ -12,6 +12,9 @@ import {
   Loader2
 } from "lucide-react";
 import { EventData } from "@/types";
+import { db, storage } from "@/lib/firebase";
+import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 // Load Leaflet component dynamically only on client side to prevent Next SSR failures
 const MapComponent = dynamic(() => import("../MapComponent"), { 
@@ -80,10 +83,6 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
     setErrorMsg("");
 
     try {
-      const { db, storage } = await import("@/lib/firebase");
-      const { collection, addDoc } = await import("firebase/firestore");
-      const { ref, uploadBytes, getDownloadURL } = await import("firebase/storage");
-
       let uploadedImageUrl = undefined;
 
       // Upload image to Firebase Storage if selected
