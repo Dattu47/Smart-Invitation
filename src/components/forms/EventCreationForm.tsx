@@ -12,9 +12,7 @@ import {
   Loader2
 } from "lucide-react";
 import { EventData } from "@/types";
-import { db, storage } from "@/lib/firebase";
-import { collection, addDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { supabase } from "@/lib/supabase";
 
 // Load Leaflet component dynamically only on client side to prevent Next SSR failures
 const MapComponent = dynamic(() => import("../MapComponent"), { 
@@ -85,57 +83,84 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
     try {
       let uploadedImageUrl = undefined;
 
-      // Upload image to Firebase Storage if selected
+      // Upload image to Supabase Storage if selected
       if (coverImageFile) {
-        const fileExtension = coverImageFile.name.split('.').pop();
-        const fileName = `covers/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-        const storageRef = ref(storage, fileName);
-        await uploadBytes(storageRef, coverImageFile);
-        uploadedImageUrl = await getDownloadURL(storageRef);
+        const fileExtension = coverImageFile.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from("covers")
+          .upload(fileName, coverImageFile);
+          
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from("covers")
+          .getPublicUrl(fileName);
+
+        uploadedImageUrl = publicUrl;
       }
 
       const payload = {
-        eventName: eventName || undefined,
-        hostName: hostName || undefined,
-        venueName: venueName || undefined,
+        event_name: eventName || null,
+        host_name: hostName || null,
+        venue_name: venueName || null,
         address,
         latitude,
         longitude,
-        date: date || undefined,
-        startTime: startTime || undefined,
-        endTime: endTime || undefined,
-        description: description || undefined,
-        phone: phone || undefined,
-        dressCode: dressCode || undefined,
-        parkingInfo: parkingInfo || undefined,
-        website: website || undefined,
-        email: email || undefined,
-        coverImage: uploadedImageUrl,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        date: date || null,
+        start_time: startTime || null,
+        end_time: endTime || null,
+        description: description || null,
+        phone: phone || null,
+        dress_code: dressCode || null,
+        parking_info: parkingInfo || null,
+        website: website || null,
+        email: email || null,
+        cover_image: uploadedImageUrl || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      // Strip out undefined values to save space
+      // Strip out null values to save space
       const cleanPayload = Object.fromEntries(
-        Object.entries(payload).filter(([, v]) => v !== undefined && v !== "")
+        Object.entries(payload).filter(([, v]) => v !== null)
       );
 
-      // Save to Firestore
-      const docRef = await addDoc(collection(db, "events"), cleanPayload);
+      // Save to Supabase
+      const { data: insertData, error: insertError } = await supabase
+        .from("events")
+        .insert([cleanPayload])
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
 
       // Construct a faux EventData to keep UI compatibility
       const savedEvent: EventData = {
-        id: docRef.id,
-        ...cleanPayload,
-        address: address, // Ensure required fields
-        latitude: latitude,
-        longitude: longitude,
-        createdAt: cleanPayload.createdAt as string,
-        updatedAt: cleanPayload.updatedAt as string,
+        id: insertData.id,
+        eventName: insertData.event_name || undefined,
+        hostName: insertData.host_name || undefined,
+        venueName: insertData.venue_name || undefined,
+        address: insertData.address,
+        latitude: insertData.latitude,
+        longitude: insertData.longitude,
+        date: insertData.date || undefined,
+        startTime: insertData.start_time || undefined,
+        endTime: insertData.end_time || undefined,
+        description: insertData.description || undefined,
+        phone: insertData.phone || undefined,
+        email: insertData.email || undefined,
+        website: insertData.website || undefined,
+        dressCode: insertData.dress_code || undefined,
+        parkingInfo: insertData.parking_info || undefined,
+        coverImage: insertData.cover_image || undefined,
+        createdAt: insertData.created_at,
+        updatedAt: insertData.updated_at,
       };
 
-      // Pass the Firestore document ID to the success handler
-      onSuccess(savedEvent, docRef.id);
+      // Pass the Supabase document ID to the success handler
+      onSuccess(savedEvent, insertData.id);
     } catch (err: unknown) {
       console.error(err);
       setErrorMsg(err instanceof Error ? err.message : "Failed to generate invitation.");

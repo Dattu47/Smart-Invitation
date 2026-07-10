@@ -1,12 +1,57 @@
 import { Metadata } from "next";
 import InvitationClientView from "@/components/InvitationClientView";
 import { EventData } from "@/types";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 
 interface InvitePageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ theme?: string }>;
+}
+
+interface SupabaseEventRow {
+  id: string;
+  event_name?: string | null;
+  host_name?: string | null;
+  venue_name?: string | null;
+  address: string;
+  latitude: number;
+  longitude: number;
+  date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  description?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  dress_code?: string | null;
+  parking_info?: string | null;
+  cover_image?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function mapSupabaseToEventData(data: SupabaseEventRow): EventData {
+  return {
+    id: data.id,
+    eventName: data.event_name || undefined,
+    hostName: data.host_name || undefined,
+    venueName: data.venue_name || undefined,
+    address: data.address,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    date: data.date || undefined,
+    startTime: data.start_time || undefined,
+    endTime: data.end_time || undefined,
+    description: data.description || undefined,
+    phone: data.phone || undefined,
+    email: data.email || undefined,
+    website: data.website || undefined,
+    dressCode: data.dress_code || undefined,
+    parkingInfo: data.parking_info || undefined,
+    coverImage: data.cover_image || undefined,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
 }
 
 export async function generateMetadata(
@@ -16,10 +61,14 @@ export async function generateMetadata(
   const id = params.id;
   
   try {
-    const docRef = doc(db, "events", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const event = docSnap.data() as EventData;
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", id)
+      .single();
+      
+    if (data && !error) {
+      const event = mapSupabaseToEventData(data);
       return {
         title: event.eventName || "Event Invitation",
         description: `You're invited to ${event.venueName || "an event"}. Click to view details.`,
@@ -40,13 +89,19 @@ export default async function InvitePage(props: InvitePageProps) {
   let event: EventData | null = null;
   
   try {
-    const docRef = doc(db, "events", id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      event = { id: docSnap.id, ...docSnap.data() } as EventData;
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", id)
+      .single();
+      
+    if (data && !error) {
+      event = mapSupabaseToEventData(data);
+    } else if (error) {
+      console.error("Failed to fetch event data from Supabase:", error.message);
     }
   } catch (err) {
-    console.error("Failed to fetch event data from Firestore", err);
+    console.error("Failed to fetch event data from Supabase", err);
   }
 
   if (!event) {
