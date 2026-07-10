@@ -102,7 +102,22 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         uploadedImageUrl = publicUrl;
       }
 
-      const payload = {
+      const changedFields: string[] = [];
+      if (initialData?.id) {
+        if (eventName !== initialData.eventName) changedFields.push("event_name");
+        if (hostName !== initialData.hostName) changedFields.push("host_name");
+        if (venueName !== initialData.venueName) changedFields.push("venue_name");
+        if (address !== initialData.address) changedFields.push("address");
+        if (date !== initialData.date) changedFields.push("date");
+        if (startTime !== initialData.startTime) changedFields.push("start_time");
+        if (endTime !== initialData.endTime) changedFields.push("end_time");
+        if (description !== initialData.description) changedFields.push("description");
+        if (dressCode !== initialData.dressCode) changedFields.push("dress_code");
+        if (parkingInfo !== initialData.parkingInfo) changedFields.push("parking_info");
+        if (uploadedImageUrl && uploadedImageUrl !== initialData.coverImage) changedFields.push("cover_image");
+      }
+
+      const payload: Record<string, string | number | boolean | null | undefined> = {
         event_name: eventName || null,
         host_name: hostName || null,
         venue_name: venueName || null,
@@ -118,10 +133,15 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         parking_info: parkingInfo || null,
         website: website || null,
         email: email || null,
-        cover_image: uploadedImageUrl || null,
-        created_at: new Date().toISOString(),
+        cover_image: uploadedImageUrl || (initialData?.coverImage || null),
         updated_at: new Date().toISOString(),
       };
+
+      if (!initialData?.id) {
+        payload.created_at = new Date().toISOString();
+      } else if (changedFields.length > 0) {
+        payload.updated_fields = JSON.stringify(changedFields);
+      }
 
       // Strip out null values to save space
       const cleanPayload = Object.fromEntries(

@@ -29,6 +29,7 @@ interface SupabaseEventRow {
   cover_image?: string | null;
   is_disabled?: boolean | null;
   qr_code_url?: string | null;
+  updated_fields?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -74,6 +75,7 @@ function mapSupabaseToEventData(data: SupabaseEventRow): EventData {
     coverImage: data.cover_image || undefined,
     isDisabled: data.is_disabled || false,
     qrCodeUrl: data.qr_code_url || undefined,
+    updatedFields: data.updated_fields ? JSON.parse(data.updated_fields) : [],
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };

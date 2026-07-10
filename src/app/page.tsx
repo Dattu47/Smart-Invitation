@@ -16,6 +16,8 @@ import QRCode from "qrcode";
 import confetti from "canvas-confetti";
 import EventCreationForm from "@/components/forms/EventCreationForm";
 import { EventData } from "@/types";
+import { supabase } from "@/lib/supabase";
+import AiQrGenerator from "@/components/AiQrGenerator";
 
 export default function Home() {
   const [createdEvent, setCreatedEvent] = useState<EventData | null>(null);
@@ -99,6 +101,20 @@ export default function Home() {
     }
   };
 
+  const handleQrGenerated = async (base64Url: string) => {
+    if (!createdEvent) return;
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ qr_code_url: base64Url })
+        .eq("id", createdEvent.id);
+      if (error) throw error;
+      setQrCodeUrl(base64Url); // Sync locally to download/share
+    } catch (err) {
+      console.error("Failed to save custom QR code to database:", err);
+    }
+  };
+
   const closeSuccessModal = () => {
     setCreatedEvent(null);
     setQrCodeUrl("");
@@ -156,7 +172,7 @@ export default function Home() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="relative w-full max-w-md bg-wedding-purple-dark/95 border border-wedding-gold/30 rounded-3xl p-6 shadow-[0_10px_50px_rgba(212,175,55,0.15)] text-center text-white"
+              className="relative w-full max-w-xl bg-wedding-purple-dark/95 border border-wedding-gold/30 rounded-3xl p-6 shadow-[0_10px_50px_rgba(212,175,55,0.15)] text-center text-white"
             >
               {/* Close Button */}
               <button
@@ -174,12 +190,14 @@ export default function Home() {
                 Your free QR Code invitation is ready to be shared.
               </p>
 
-              {/* QR Code Container */}
-              {qrCodeUrl && (
-                <div className="w-48 h-48 mx-auto bg-white p-3 rounded-2xl mb-6 shadow-inner flex items-center justify-center">
-                  <img src={qrCodeUrl} alt="Event Invitation QR Code" className="w-full h-full object-contain" />
-                </div>
-              )}
+              {/* AI-Branded QR Code Customizer */}
+              <div className="mb-6 text-left">
+                <AiQrGenerator 
+                  text={eventLink} 
+                  onQrGenerated={handleQrGenerated} 
+                  eventName={createdEvent.eventName} 
+                />
+              </div>
 
               {/* Event Link Row */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-xs flex items-center justify-between gap-3 mb-6 select-all">
