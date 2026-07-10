@@ -102,6 +102,12 @@ export default function Home() {
               <Sparkles className="w-6 h-6 text-wedding-gold animate-pulse" />
               <span className="font-serif text-lg font-bold text-gold-gradient">Smart Invitation</span>
             </div>
+            <Link 
+              href="/dashboard"
+              className="text-xs font-semibold text-wedding-gold hover:text-wedding-gold-light border border-wedding-gold/20 hover:border-wedding-gold/40 px-3.5 py-2 rounded-xl backdrop-blur-md bg-white/5 transition-all cursor-pointer select-none"
+            >
+              My Dashboard
+            </Link>
           </div>
 
           <h1 className="font-serif text-4xl md:text-5xl font-bold tracking-wide text-gold-gradient leading-tight mt-4">
