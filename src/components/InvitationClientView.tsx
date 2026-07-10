@@ -314,7 +314,7 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
         >
           {/* 📍 Get Directions */}
           <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-[1.2rem] opacity-30 group-hover:opacity-60 blur transition duration-500" />
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-[1.2rem] opacity-30 group-hover:opacity-60 blur transition duration-500 pointer-events-none" />
             <DirectionsButton
               latitude={event.latitude}
               longitude={event.longitude}
