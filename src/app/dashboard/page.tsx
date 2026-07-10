@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
 
   const activeCount = events.filter((e) => !e.isDisabled && !isEventExpired(e.date)).length;
   const deactivatedCount = events.filter((e) => e.isDisabled || isEventExpired(e.date)).length;
@@ -79,25 +80,11 @@ export default function Dashboard() {
   const fetchEvents = async () => {
     setIsLoading(true);
     try {
-      const rawStored = localStorage.getItem("smart_invitations") || "[]";
-      const parsed = JSON.parse(rawStored) as (string | { id?: string })[];
-      
-      // Handle legacy format (array of full objects) vs new format (array of IDs or objects)
-      const eventIds: string[] = parsed
-        .map((item) => (typeof item === "object" ? item?.id : item))
-        .filter((id): id is string => typeof id === "string" && id !== "");
-
-      if (eventIds.length === 0) {
-        setEvents([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // Fetch latest details from Supabase
+      // Fetch all details directly from Supabase events table, ordered by created_at descending
       const { data, error } = await supabase
         .from("events")
         .select("*")
-        .in("id", eventIds);
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -126,9 +113,6 @@ export default function Dashboard() {
           createdAt: row.created_at,
           updatedAt: row.updated_at,
         }));
-
-        // Sort mapped list in the same order as eventIds (to preserve creation chronological order)
-        mapped.sort((a, b) => eventIds.indexOf(a.id) - eventIds.indexOf(b.id));
 
         setEvents(mapped);
       }
@@ -258,6 +242,12 @@ export default function Dashboard() {
     return name.includes(term) || host.includes(term) || venue.includes(term) || addr.includes(term);
   });
 
+  // Filter based on activeTab (Upcoming/Live vs Past/Deactivated)
+  const tabFilteredEvents = filteredEvents.filter((e) => {
+    const isPast = isEventExpired(e.date) || e.isDisabled;
+    return activeTab === "upcoming" ? !isPast : isPast;
+  });
+
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-start bg-wedding-purple-dark text-white overflow-hidden py-10 px-4 md:py-16">
       {/* Background Gradients */}
@@ -322,6 +312,32 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Tab Controls */}
+          {!isLoading && events.length > 0 && (
+            <div className="flex gap-2 bg-white/5 border border-white/[0.04] p-1.5 rounded-2xl select-none mt-4">
+              <button
+                onClick={() => setActiveTab("upcoming")}
+                className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  activeTab === "upcoming"
+                    ? "bg-gradient-to-r from-wedding-gold-dark via-wedding-gold to-wedding-gold-dark text-wedding-purple-dark shadow-md"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Upcoming & Live ({activeCount})
+              </button>
+              <button
+                onClick={() => setActiveTab("past")}
+                className={`flex-1 py-3 text-center text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  activeTab === "past"
+                    ? "bg-gradient-to-r from-wedding-gold-dark via-wedding-gold to-wedding-gold-dark text-wedding-purple-dark shadow-md"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                Past & Deactivated ({deactivatedCount})
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Event Listings */}
@@ -330,9 +346,9 @@ export default function Dashboard() {
             <Loader2 className="w-8 h-8 animate-spin text-wedding-gold" />
             <p className="text-sm text-gray-400">Loading events...</p>
           </div>
-        ) : filteredEvents.length > 0 ? (
+        ) : tabFilteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredEvents.map((event) => {
+            {tabFilteredEvents.map((event) => {
               const formattedDate = event.date
                 ? new Date(event.date).toLocaleDateString("en-US", {
                     day: "numeric",
@@ -501,13 +517,21 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="text-center py-16 bg-white/[0.02] border border-white/[0.04] rounded-3xl p-8 select-none">
-            <p className="text-gray-400 text-sm mb-4">No events found matching your description.</p>
-            <Link 
-              href="/"
-              className="text-xs text-wedding-gold hover:text-wedding-gold-light border border-wedding-gold/20 hover:border-wedding-gold/40 px-4 py-2 rounded-xl transition-all cursor-pointer"
-            >
-              Create Your First QR Invitation
-            </Link>
+            <p className="text-gray-400 text-sm mb-4">
+              {events.length === 0 
+                ? "No events created yet." 
+                : activeTab === "upcoming" 
+                  ? "No active upcoming events found." 
+                  : "No past or deactivated events found."}
+            </p>
+            {events.length === 0 && (
+              <Link 
+                href="/"
+                className="text-xs text-wedding-gold hover:text-wedding-gold-light border border-wedding-gold/20 hover:border-wedding-gold/40 px-4 py-2 rounded-xl transition-all cursor-pointer"
+              >
+                Create Your First QR Invitation
+              </Link>
+            )}
           </div>
         )}
       </main>

@@ -154,46 +154,23 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         activeData = insertData;
       }
 
-      // Generate, upload and store QR code image in database
+      // Generate and store QR code image in database
       try {
         const inviteUrl = `${window.location.origin}/invite/${activeData.id}`;
         const qrDataUrl = await QRCode.toDataURL(inviteUrl, { margin: 1, width: 500, color: { dark: "#0e051d" } });
         
-        // Convert base64 to file blob
-        const parts = qrDataUrl.split(',');
-        const mime = parts[0].match(/:(.*?);/)![1];
-        const bstr = atob(parts[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        const qrBlob = new Blob([u8arr], { type: mime });
-        const qrFile = new File([qrBlob], `qr_${activeData.id}.png`, { type: "image/png" });
+        const { data: finalData, error: finalError } = await supabase
+          .from("events")
+          .update({ qr_code_url: qrDataUrl })
+          .eq("id", activeData.id)
+          .select()
+          .single();
 
-        const qrFileName = `qr-${activeData.id}-${Date.now()}.png`;
-        const { error: qrUploadError } = await supabase.storage
-          .from("covers")
-          .upload(qrFileName, qrFile);
-
-        if (!qrUploadError) {
-          const { data: { publicUrl: qrPublicUrl } } = supabase.storage
-            .from("covers")
-            .getPublicUrl(qrFileName);
-
-          const { data: finalData, error: finalError } = await supabase
-            .from("events")
-            .update({ qr_code_url: qrPublicUrl })
-            .eq("id", activeData.id)
-            .select()
-            .single();
-
-          if (!finalError && finalData) {
-            activeData = finalData;
-          }
+        if (!finalError && finalData) {
+          activeData = finalData;
         }
       } catch (qrErr) {
-        console.error("Failed to upload QR Code to storage:", qrErr);
+        console.error("Failed to save QR Code to database:", qrErr);
       }
 
       // Construct a faux EventData to keep UI compatibility

@@ -177,8 +177,13 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
           transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
           className="w-full rounded-[2rem] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-2xl bg-white/[0.04] overflow-hidden relative"
         >
-          {/* Subtle noise texture overlay for premium feel */}
           <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
+
+          {/* Invitation Decorative Corner Ornaments */}
+          <div className={`absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 ${activeTheme === 'wedding' ? 'border-wedding-gold/40' : activeTheme === 'party' ? 'border-party-cyan/40' : 'border-corp-amber/40'} rounded-tl-md pointer-events-none z-20`} />
+          <div className={`absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 ${activeTheme === 'wedding' ? 'border-wedding-gold/40' : activeTheme === 'party' ? 'border-party-cyan/40' : 'border-corp-amber/40'} rounded-tr-md pointer-events-none z-20`} />
+          <div className={`absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 ${activeTheme === 'wedding' ? 'border-wedding-gold/40' : activeTheme === 'party' ? 'border-party-cyan/40' : 'border-corp-amber/40'} rounded-bl-md pointer-events-none z-20`} />
+          <div className={`absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 ${activeTheme === 'wedding' ? 'border-wedding-gold/40' : activeTheme === 'party' ? 'border-party-cyan/40' : 'border-corp-amber/40'} rounded-br-md pointer-events-none z-20`} />
 
           {/* Photo URL Integration */}
           {event.coverImage ? (
