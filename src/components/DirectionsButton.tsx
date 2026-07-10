@@ -21,7 +21,7 @@ export default function DirectionsButton({
   const query = (latitude && longitude)
     ? `${latitude},${longitude}`
     : encodeURIComponent(address || "");
-  const navUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+  const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${query}`;
 
   return (
     <a
