@@ -89,7 +89,6 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
     message: string;
     type: "success" | "error" | "info";
   } | null>(null);
-  const [showUpdates, setShowUpdates] = useState(false);
 
   const showToast = (message: string, type: "success" | "error" | "info") => {
     setToast({ message, type });
@@ -144,77 +143,8 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
     { size: 100, left: "15%", delay: 9, duration: 20 },
   ];
 
-  const getFieldLabel = (field: string) => {
-    switch (field) {
-      case "event_name": return "Event Name";
-      case "host_name": return "Host Name";
-      case "venue_name": return "Venue Name";
-      case "address": return "Location Address";
-      case "date": return "Event Date";
-      case "start_time": return "Start Time";
-      case "end_time": return "End Time";
-      case "description": return "Event Description";
-      case "dress_code": return "Dress Code";
-      case "parking_info": return "Parking Info";
-      case "cover_image": return "Banner Image";
-      default: return field;
-    }
-  };
-
-  const hasUpdates = !!(event.updatedFields && event.updatedFields.length > 0);
-
   return (
     <div className={`relative min-h-screen w-full flex flex-col items-center justify-start text-white overflow-x-hidden py-10 px-4 md:py-16 transition-colors duration-700 ${styles.bodyBgClass} ${styles.fontClass}`}>
-      
-      {/* 🔔 Event Update Banner */}
-      {hasUpdates && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 select-none">
-          <motion.div
-            initial={{ y: -70, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 120 }}
-            className="w-full rounded-2xl bg-amber-500/10 border border-amber-500/25 p-4 backdrop-blur-md shadow-lg flex flex-col gap-3 text-amber-300"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                </span>
-                <span className="text-xs font-semibold uppercase tracking-wider">Event Details Updated</span>
-              </div>
-              <button
-                onClick={() => setShowUpdates(!showUpdates)}
-                className="text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500/35 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
-              >
-                {showUpdates ? "Dismiss" : "View Details"}
-              </button>
-            </div>
-            
-            <AnimatePresence>
-              {showUpdates && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden space-y-2 border-t border-amber-500/15 pt-3"
-                >
-                  <p className="text-[11px] text-amber-400 leading-relaxed font-medium">
-                    The host recently modified the following details of this event. Please verify updated schedules:
-                  </p>
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {event.updatedFields?.map((f) => (
-                      <span key={f} className="text-[10px] font-bold bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-md uppercase">
-                        {getFieldLabel(f)} Changed
-                      </span>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
-      )}
       
       {/* Background Ambient Glows */}
       <div className={`fixed top-[-10%] left-[-15%] w-[70%] aspect-square rounded-full bg-gradient-to-br opacity-40 blur-[140px] pointer-events-none ${styles.glow1Class}`} />
