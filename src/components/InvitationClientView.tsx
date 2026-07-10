@@ -318,6 +318,7 @@ export default function InvitationClientView({ event, themeQuery }: InvitationCl
             <DirectionsButton
               latitude={event.latitude}
               longitude={event.longitude}
+              address={event.address}
               styles={styles}
               onNotify={showToast}
             />

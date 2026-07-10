@@ -6,6 +6,7 @@ import { ThemeStyles } from "../config/themes";
 interface DirectionsButtonProps {
   latitude: number;
   longitude: number;
+  address?: string;
   styles: ThemeStyles;
   onNotify: (message: string, type: "success" | "error" | "info") => void;
 }
@@ -13,10 +14,14 @@ interface DirectionsButtonProps {
 export default function DirectionsButton({
   latitude,
   longitude,
+  address,
   styles,
   onNotify,
 }: DirectionsButtonProps) {
-  const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
+  const query = (latitude && longitude)
+    ? `${latitude},${longitude}`
+    : encodeURIComponent(address || "");
+  const navUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
 
   return (
     <a

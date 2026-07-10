@@ -3,19 +3,19 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  MapPin, 
-  Sparkles, 
-  Calendar, 
-  Info, 
-  ChevronDown, 
+import {
+  MapPin,
+  Sparkles,
+  Calendar,
+  Info,
+  ChevronDown,
   Loader2
 } from "lucide-react";
 import { EventData } from "@/types";
 import { supabase } from "@/lib/supabase";
 
 // Load Leaflet component dynamically only on client side to prevent Next SSR failures
-const MapComponent = dynamic(() => import("../MapComponent"), { 
+const MapComponent = dynamic(() => import("../MapComponent"), {
   ssr: false,
   loading: () => (
     <div className="h-[250px] w-full rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
@@ -87,11 +87,11 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
       if (coverImageFile) {
         const fileExtension = coverImageFile.name.split(".").pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from("covers")
           .upload(fileName, coverImageFile);
-          
+
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
@@ -240,7 +240,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">Event Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. John & Emma Wedding, Tech Gala, Birthday Party"
+                  placeholder="e.g. Smart_Invitation"
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-wedding-gold/40 transition-colors"
