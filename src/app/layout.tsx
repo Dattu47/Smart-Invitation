@@ -16,8 +16,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "John & Emma's Wedding Invitation",
-  description: "You are cordially invited to celebrate the wedding of John and Emma on 20 December 2026 at the Royal Grand Convention Hall, Hyderabad. Get directions and add the event to your calendar.",
+  title: "Smart Invitation Portal",
+  description: "Create smart, custom event invitations with map directions, calendar schedules, and instant QR codes for free.",
 };
 
 export const viewport: Viewport = {

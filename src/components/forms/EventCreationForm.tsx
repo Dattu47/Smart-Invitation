@@ -128,39 +128,56 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
       );
 
       // Save to Supabase
-      const { data: insertData, error: insertError } = await supabase
-        .from("events")
-        .insert([cleanPayload])
-        .select()
-        .single();
+      let activeData = null;
 
-      if (insertError) throw insertError;
+      if (initialData?.id) {
+        // Update existing event details
+        const { data: updateData, error: updateError } = await supabase
+          .from("events")
+          .update(cleanPayload)
+          .eq("id", initialData.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        activeData = updateData;
+      } else {
+        // Create new event details
+        const { data: insertData, error: insertError } = await supabase
+          .from("events")
+          .insert([cleanPayload])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        activeData = insertData;
+      }
 
       // Construct a faux EventData to keep UI compatibility
       const savedEvent: EventData = {
-        id: insertData.id,
-        eventName: insertData.event_name || undefined,
-        hostName: insertData.host_name || undefined,
-        venueName: insertData.venue_name || undefined,
-        address: insertData.address,
-        latitude: insertData.latitude,
-        longitude: insertData.longitude,
-        date: insertData.date || undefined,
-        startTime: insertData.start_time || undefined,
-        endTime: insertData.end_time || undefined,
-        description: insertData.description || undefined,
-        phone: insertData.phone || undefined,
-        email: insertData.email || undefined,
-        website: insertData.website || undefined,
-        dressCode: insertData.dress_code || undefined,
-        parkingInfo: insertData.parking_info || undefined,
-        coverImage: insertData.cover_image || undefined,
-        createdAt: insertData.created_at,
-        updatedAt: insertData.updated_at,
+        id: activeData.id,
+        eventName: activeData.event_name || undefined,
+        hostName: activeData.host_name || undefined,
+        venueName: activeData.venue_name || undefined,
+        address: activeData.address,
+        latitude: activeData.latitude,
+        longitude: activeData.longitude,
+        date: activeData.date || undefined,
+        startTime: activeData.start_time || undefined,
+        endTime: activeData.end_time || undefined,
+        description: activeData.description || undefined,
+        phone: activeData.phone || undefined,
+        email: activeData.email || undefined,
+        website: activeData.website || undefined,
+        dressCode: activeData.dress_code || undefined,
+        parkingInfo: activeData.parking_info || undefined,
+        coverImage: activeData.cover_image || undefined,
+        createdAt: activeData.created_at,
+        updatedAt: activeData.updated_at,
       };
 
       // Pass the Supabase document ID to the success handler
-      onSuccess(savedEvent, insertData.id);
+      onSuccess(savedEvent, activeData.id);
     } catch (err: unknown) {
       console.error(err);
       setErrorMsg(err instanceof Error ? err.message : "Failed to generate invitation.");

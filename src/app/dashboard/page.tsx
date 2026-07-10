@@ -21,6 +21,7 @@ import {
 import QRCode from "qrcode";
 import { EventData } from "@/types";
 import EventCreationForm from "@/components/forms/EventCreationForm";
+import { supabase } from "@/lib/supabase";
 
 // Self-contained dynamic QR Code renderer for card listings
 function DashboardQR({ eventId }: { eventId: string }) {
@@ -51,13 +52,62 @@ export default function Dashboard() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const fetchEvents = () => {
+  const fetchEvents = async () => {
     setIsLoading(true);
     try {
-      const savedEvents = JSON.parse(localStorage.getItem("smart_invitations") || "[]");
-      setEvents(savedEvents);
+      const rawStored = localStorage.getItem("smart_invitations") || "[]";
+      const parsed = JSON.parse(rawStored) as (string | { id?: string })[];
+      
+      // Handle legacy format (array of full objects) vs new format (array of IDs or objects)
+      const eventIds: string[] = parsed
+        .map((item) => (typeof item === "object" ? item?.id : item))
+        .filter((id): id is string => typeof id === "string" && id !== "");
+
+      if (eventIds.length === 0) {
+        setEvents([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch latest details from Supabase
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .in("id", eventIds);
+
+      if (error) throw error;
+
+      if (data) {
+        // Map database columns to EventData format
+        const mapped = data.map((row) => ({
+          id: row.id,
+          eventName: row.event_name || undefined,
+          hostName: row.host_name || undefined,
+          venueName: row.venue_name || undefined,
+          address: row.address,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          date: row.date || undefined,
+          startTime: row.start_time || undefined,
+          endTime: row.end_time || undefined,
+          description: row.description || undefined,
+          phone: row.phone || undefined,
+          email: row.email || undefined,
+          website: row.website || undefined,
+          dressCode: row.dress_code || undefined,
+          parkingInfo: row.parking_info || undefined,
+          coverImage: row.cover_image || undefined,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        }));
+
+        // Sort mapped list in the same order as eventIds (to preserve creation chronological order)
+        mapped.sort((a, b) => eventIds.indexOf(a.id) - eventIds.indexOf(b.id));
+
+        setEvents(mapped);
+      }
     } catch (err) {
-      console.error("Failed to load events:", err);
+      console.error("Failed to load events from Supabase:", err);
     } finally {
       setIsLoading(false);
     }
@@ -96,18 +146,38 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeleteEvent = (id: string) => {
-    const updatedEvents = events.filter((e) => e.id !== id);
-    setEvents(updatedEvents);
-    localStorage.setItem("smart_invitations", JSON.stringify(updatedEvents));
-    setDeleteConfirmId(null);
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      // 1. Delete from Supabase
+      const { error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+
+      // 2. Remove from local state
+      const updatedEvents = events.filter((e) => e.id !== id);
+      setEvents(updatedEvents);
+
+      // 3. Update localStorage
+      const rawStored = localStorage.getItem("smart_invitations") || "[]";
+      const parsed = JSON.parse(rawStored) as (string | { id?: string })[];
+      const updatedIds = parsed.filter((item) => {
+        const itemId = typeof item === "object" ? item?.id : item;
+        return itemId !== id;
+      });
+      localStorage.setItem("smart_invitations", JSON.stringify(updatedIds));
+    } catch (err) {
+      console.error("Failed to delete event:", err);
+      alert("Failed to delete event from database.");
+    } finally {
+      setDeleteConfirmId(null);
+    }
   };
 
-  const handleEditSuccess = (updatedEvent: EventData) => {
-    const newEvent = { ...updatedEvent, id: editingEvent!.id };
-    const updatedEvents = events.map((e) => (e.id === newEvent.id ? newEvent : e));
-    setEvents(updatedEvents);
-    localStorage.setItem("smart_invitations", JSON.stringify(updatedEvents));
+  const handleEditSuccess = () => {
+    fetchEvents();
     setEditingEvent(null);
   };
 
