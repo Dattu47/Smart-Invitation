@@ -18,7 +18,8 @@ import {
   Check, 
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  Share2
 } from "lucide-react";
 import QRCode from "qrcode";
 import { EventData } from "@/types";
@@ -203,6 +204,26 @@ export default function Dashboard() {
   const handleEditSuccess = () => {
     fetchEvents();
     setEditingEvent(null);
+  };
+
+  const handleShare = async (event: EventData) => {
+    const url = `${window.location.origin}/invite/${event.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event.eventName || "Smart Invitation",
+          text: `You're invited to ${event.eventName || "an event"} at ${event.venueName || "venue"}. Click to view details and map location!`,
+          url: url,
+        });
+      } catch (err) {
+        console.error("Error sharing invitation:", err);
+      }
+    } else {
+      // Fallback: Copy Link
+      navigator.clipboard.writeText(url);
+      setCopiedId(event.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleToggleDeactivate = async (event: EventData) => {
@@ -415,6 +436,15 @@ export default function Dashboard() {
                         title="Download QR Code"
                       >
                         <Download className="w-4 h-4" />
+                      </button>
+
+                      {/* Share Invitation */}
+                      <button
+                        onClick={() => handleShare(event)}
+                        className="p-2.5 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 text-gray-300 hover:text-white transition-all cursor-pointer"
+                        title="Share Invitation"
+                      >
+                        <Share2 className="w-4 h-4" />
                       </button>
 
                       {/* Toggle Deactivation */}

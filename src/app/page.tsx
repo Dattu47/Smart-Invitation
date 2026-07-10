@@ -9,7 +9,8 @@ import {
   Download, 
   ExternalLink,
   Check,
-  X 
+  X,
+  Share2
 } from "lucide-react";
 import QRCode from "qrcode";
 import confetti from "canvas-confetti";
@@ -78,6 +79,24 @@ export default function Home() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleShareModal = async () => {
+    if (!eventLink || !createdEvent) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: createdEvent.eventName || "Smart Invitation",
+          text: `You're invited to ${createdEvent.eventName || "an event"} at ${createdEvent.venueName || "venue"}. Click to view details and map location!`,
+          url: eventLink,
+        });
+      } catch (err) {
+        console.error("Error sharing invitation:", err);
+      }
+    } else {
+      // Fallback: Copy Link
+      handleCopyLink();
+    }
   };
 
   const closeSuccessModal = () => {
@@ -170,29 +189,36 @@ export default function Home() {
               </div>
 
               {/* Actions Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-3 gap-2 mb-4">
                 <button
                   onClick={handleCopyLink}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-xs font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 py-3 px-1.5 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-[11px] font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer truncate"
                 >
                   {copied ? (
                     <>
-                      <Check className="w-4 h-4 text-green-400" />
-                      <span className="text-green-400">Copied!</span>
+                      <Check className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                      <span className="text-green-400 truncate">Copied!</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-4 h-4 text-wedding-gold" />
-                      <span>Copy Link</span>
+                      <Copy className="w-3.5 h-3.5 text-wedding-gold shrink-0" />
+                      <span className="truncate">Copy Link</span>
                     </>
                   )}
                 </button>
                 <button
                   onClick={handleDownloadQR}
-                  className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-xs font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer"
+                  className="flex items-center justify-center gap-1.5 py-3 px-1.5 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-[11px] font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer truncate"
                 >
-                  <Download className="w-4 h-4 text-wedding-gold" />
-                  <span>Download QR</span>
+                  <Download className="w-3.5 h-3.5 text-wedding-gold shrink-0" />
+                  <span className="truncate">Download QR</span>
+                </button>
+                <button
+                  onClick={handleShareModal}
+                  className="flex items-center justify-center gap-1.5 py-3 px-1.5 rounded-xl border border-white/10 hover:border-wedding-gold/40 text-[11px] font-semibold bg-white/[0.02] hover:bg-white/[0.06] transition-all cursor-pointer truncate"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-wedding-gold shrink-0" />
+                  <span className="truncate">Share QR</span>
                 </button>
               </div>
 
