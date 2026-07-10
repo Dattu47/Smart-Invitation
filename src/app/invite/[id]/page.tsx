@@ -28,6 +28,7 @@ interface SupabaseEventRow {
   parking_info?: string | null;
   cover_image?: string | null;
   is_disabled?: boolean | null;
+  qr_code_url?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -72,6 +73,7 @@ function mapSupabaseToEventData(data: SupabaseEventRow): EventData {
     parkingInfo: data.parking_info || undefined,
     coverImage: data.cover_image || undefined,
     isDisabled: data.is_disabled || false,
+    qrCodeUrl: data.qr_code_url || undefined,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };

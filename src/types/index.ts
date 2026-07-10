@@ -20,6 +20,7 @@ export interface EventData {
   updatedAt: string;
   compressedData?: string;
   isDisabled?: boolean;
+  qrCodeUrl?: string;
 }
 export interface EventDetails {
   title: string;

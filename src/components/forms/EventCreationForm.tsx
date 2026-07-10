@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { EventData } from "@/types";
 import { supabase } from "@/lib/supabase";
+import QRCode from "qrcode";
 
 // Load Leaflet component dynamically only on client side to prevent Next SSR failures
 const MapComponent = dynamic(() => import("../MapComponent"), {
@@ -153,6 +154,48 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         activeData = insertData;
       }
 
+      // Generate, upload and store QR code image in database
+      try {
+        const inviteUrl = `${window.location.origin}/invite/${activeData.id}`;
+        const qrDataUrl = await QRCode.toDataURL(inviteUrl, { margin: 1, width: 500, color: { dark: "#0e051d" } });
+        
+        // Convert base64 to file blob
+        const parts = qrDataUrl.split(',');
+        const mime = parts[0].match(/:(.*?);/)![1];
+        const bstr = atob(parts[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const qrBlob = new Blob([u8arr], { type: mime });
+        const qrFile = new File([qrBlob], `qr_${activeData.id}.png`, { type: "image/png" });
+
+        const qrFileName = `qr-${activeData.id}-${Date.now()}.png`;
+        const { error: qrUploadError } = await supabase.storage
+          .from("covers")
+          .upload(qrFileName, qrFile);
+
+        if (!qrUploadError) {
+          const { data: { publicUrl: qrPublicUrl } } = supabase.storage
+            .from("covers")
+            .getPublicUrl(qrFileName);
+
+          const { data: finalData, error: finalError } = await supabase
+            .from("events")
+            .update({ qr_code_url: qrPublicUrl })
+            .eq("id", activeData.id)
+            .select()
+            .single();
+
+          if (!finalError && finalData) {
+            activeData = finalData;
+          }
+        }
+      } catch (qrErr) {
+        console.error("Failed to upload QR Code to storage:", qrErr);
+      }
+
       // Construct a faux EventData to keep UI compatibility
       const savedEvent: EventData = {
         id: activeData.id,
@@ -173,6 +216,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         parkingInfo: activeData.parking_info || undefined,
         coverImage: activeData.cover_image || undefined,
         isDisabled: activeData.is_disabled || false,
+        qrCodeUrl: activeData.qr_code_url || undefined,
         createdAt: activeData.created_at,
         updatedAt: activeData.updated_at,
       };

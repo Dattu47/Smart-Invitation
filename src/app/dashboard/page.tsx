@@ -122,6 +122,7 @@ export default function Dashboard() {
           parkingInfo: row.parking_info || undefined,
           coverImage: row.cover_image || undefined,
           isDisabled: row.is_disabled || false,
+          qrCodeUrl: row.qr_code_url || undefined,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
         }));
@@ -348,7 +349,15 @@ export default function Dashboard() {
                   <div className="flex gap-4">
                     {/* QR Code preview */}
                     <div className="shrink-0">
-                      <DashboardQR eventId={event.id} />
+                      {event.qrCodeUrl ? (
+                        <img 
+                          src={event.qrCodeUrl} 
+                          alt="Event QR" 
+                          className="w-16 h-16 rounded-xl object-contain bg-white p-1" 
+                        />
+                      ) : (
+                        <DashboardQR eventId={event.id} />
+                      )}
                     </div>
 
                     {/* Metadata summary */}
