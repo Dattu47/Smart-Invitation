@@ -172,6 +172,7 @@ export default function EventCreationForm({ initialData, onSuccess }: EventCreat
         dressCode: activeData.dress_code || undefined,
         parkingInfo: activeData.parking_info || undefined,
         coverImage: activeData.cover_image || undefined,
+        isDisabled: activeData.is_disabled || false,
         createdAt: activeData.created_at,
         updatedAt: activeData.updated_at,
       };

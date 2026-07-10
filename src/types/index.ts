@@ -19,6 +19,7 @@ export interface EventData {
   createdAt: string;
   updatedAt: string;
   compressedData?: string;
+  isDisabled?: boolean;
 }
 export interface EventDetails {
   title: string;

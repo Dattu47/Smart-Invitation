@@ -16,12 +16,32 @@ import {
   Trash2, 
   Loader2, 
   Check, 
-  X 
+  X,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import QRCode from "qrcode";
 import { EventData } from "@/types";
 import EventCreationForm from "@/components/forms/EventCreationForm";
 import { supabase } from "@/lib/supabase";
+
+function isEventExpired(dateStr?: string): boolean {
+  if (!dateStr) return false;
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const eventDate = new Date(dateStr);
+    eventDate.setHours(0, 0, 0, 0);
+
+    const expiryDate = new Date(eventDate);
+    expiryDate.setDate(expiryDate.getDate() + 1);
+
+    return today > expiryDate;
+  } catch {
+    return false;
+  }
+}
 
 // Self-contained dynamic QR Code renderer for card listings
 function DashboardQR({ eventId }: { eventId: string }) {
@@ -46,6 +66,9 @@ export default function Dashboard() {
   const [events, setEvents] = useState<EventData[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  const activeCount = events.filter((e) => !e.isDisabled && !isEventExpired(e.date)).length;
+  const deactivatedCount = events.filter((e) => e.isDisabled || isEventExpired(e.date)).length;
   
   // Controls for interactive operations
   const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
@@ -97,6 +120,7 @@ export default function Dashboard() {
           dressCode: row.dress_code || undefined,
           parkingInfo: row.parking_info || undefined,
           coverImage: row.cover_image || undefined,
+          isDisabled: row.is_disabled || false,
           createdAt: row.created_at,
           updatedAt: row.updated_at,
         }));
@@ -181,6 +205,27 @@ export default function Dashboard() {
     setEditingEvent(null);
   };
 
+  const handleToggleDeactivate = async (event: EventData) => {
+    try {
+      const newStatus = !event.isDisabled;
+      const { error } = await supabase
+        .from("events")
+        .update({ is_disabled: newStatus })
+        .eq("id", event.id);
+
+      if (error) throw error;
+
+      // Update local state
+      const updatedEvents = events.map((e) =>
+        e.id === event.id ? { ...e, isDisabled: newStatus } : e
+      );
+      setEvents(updatedEvents);
+    } catch (err) {
+      console.error("Failed to toggle event deactivation status:", err);
+      alert("Failed to update deactivation status.");
+    }
+  };
+
   // Filter lists based on Search criteria
   const filteredEvents = events.filter((e) => {
     const term = searchQuery.toLowerCase();
@@ -237,6 +282,24 @@ export default function Dashboard() {
             />
             <Search className="w-4 h-4 text-gray-400 absolute left-4 top-4" />
           </div>
+
+          {/* Stats Summary Panel */}
+          {!isLoading && events.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 select-none">
+              <div className="rounded-2xl bg-white/5 border border-white/[0.04] p-4 backdrop-blur-md text-center">
+                <span className="block text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Invites</span>
+                <span className="block text-xl md:text-2xl font-bold font-serif text-wedding-gold-light mt-1">{events.length}</span>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/[0.04] p-4 backdrop-blur-md text-center">
+                <span className="block text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wide">Live & Active</span>
+                <span className="block text-xl md:text-2xl font-bold font-serif text-green-400 mt-1">{activeCount}</span>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/[0.04] p-4 backdrop-blur-md text-center">
+                <span className="block text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wide">Deactivated</span>
+                <span className="block text-xl md:text-2xl font-bold font-serif text-red-400 mt-1">{deactivatedCount}</span>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Event Listings */}
@@ -273,9 +336,24 @@ export default function Dashboard() {
                         <h3 className="font-serif text-lg font-semibold text-wedding-gold-light truncate leading-snug">
                           {event.eventName || "Unnamed Location Event"}
                         </h3>
-                        <span className="text-[10px] font-mono text-wedding-gold bg-wedding-gold/15 border border-wedding-gold/25 px-1.5 py-0.5 rounded uppercase select-all">
-                          {event.id}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {event.isDisabled ? (
+                            <span className="text-[9px] font-bold text-red-400 bg-red-400/10 border border-red-500/20 px-1.5 py-0.5 rounded-full uppercase">
+                              Disabled
+                            </span>
+                          ) : isEventExpired(event.date) ? (
+                            <span className="text-[9px] font-bold text-gray-400 bg-gray-400/10 border border-white/10 px-1.5 py-0.5 rounded-full uppercase">
+                              Expired
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold text-green-400 bg-green-400/10 border border-green-500/20 px-1.5 py-0.5 rounded-full uppercase animate-pulse">
+                              Active
+                            </span>
+                          )}
+                          <span className="text-[10px] font-mono text-wedding-gold bg-wedding-gold/15 border border-wedding-gold/25 px-1.5 py-0.5 rounded uppercase select-all">
+                            {event.id}
+                          </span>
+                        </div>
                       </div>
                       
                       {event.hostName && (
@@ -337,6 +415,18 @@ export default function Dashboard() {
                         title="Download QR Code"
                       >
                         <Download className="w-4 h-4" />
+                      </button>
+
+                      {/* Toggle Deactivation */}
+                      <button
+                        onClick={() => handleToggleDeactivate(event)}
+                        disabled={isEventExpired(event.date)}
+                        className={`p-2.5 rounded-xl hover:bg-white/5 border border-transparent hover:border-white/10 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${
+                          event.isDisabled ? "text-red-400 hover:text-red-300" : "text-green-400 hover:text-green-300"
+                        }`}
+                        title={event.isDisabled ? "Activate QR / Invitation" : "Deactivate QR / Invitation"}
+                      >
+                        {event.isDisabled ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
 
